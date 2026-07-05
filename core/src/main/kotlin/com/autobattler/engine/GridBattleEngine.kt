@@ -54,12 +54,13 @@ class GridBattleEngine {
                 unit.tickCooldown()
 
                 when (unit.type) {
-                    is NormalUnitType.Melee    -> processMelee(unit, simUnits, grid, events)
-                    is NormalUnitType.Ranged   -> processRanged(unit, simUnits, grid, events)
-                    is NormalUnitType.Healer   -> processHealer(unit, simUnits, grid, events)
+                    is NormalUnitType.Melee, is NormalUnitType.MeleeSilver, is NormalUnitType.MeleeGold -> processMelee(unit, simUnits, grid, events)
+                    is NormalUnitType.Ranged, is NormalUnitType.RangedSilver, is NormalUnitType.RangedGold -> processRanged(unit, simUnits, grid, events)
+                    is NormalUnitType.Healer, is NormalUnitType.HealerSilver, is NormalUnitType.HealerGold -> processHealer(unit, simUnits, grid, events)
+                    is NormalUnitType.Knight, is NormalUnitType.KnightSilver, is NormalUnitType.KnightGold -> processMelee(unit, simUnits, grid, events)
+                    is NormalUnitType.GriffinRider, is NormalUnitType.GriffinRiderSilver, is NormalUnitType.GriffinRiderGold -> processMelee(unit, simUnits, grid, events)
                     is MonsterUnitType.Bear    -> processMelee(unit, simUnits, grid, events)
                     is MonsterUnitType.Wolf    -> processWolf(unit, simUnits, grid, events)
-                    // New monster types — route to appropriate behaviour
                     is MonsterUnitType.Goblin      -> processMelee(unit, simUnits, grid, events)
                     is MonsterUnitType.Skeleton    -> processMelee(unit, simUnits, grid, events)
                     is MonsterUnitType.DarkMage    -> processRanged(unit, simUnits, grid, events)
@@ -68,8 +69,9 @@ class GridBattleEngine {
                     is MonsterUnitType.OrcWarrior  -> processMelee(unit, simUnits, grid, events)
                     is MonsterUnitType.Spider      -> processMelee(unit, simUnits, grid, events)
                     is MonsterUnitType.Dragon      -> processMelee(unit, simUnits, grid, events)
-                    is SpecialUnitType.Farmer  -> processFarmer(unit, simUnits, grid, events)
-                    is StructureUnitType.Farm  -> { /* passive structure — no action */ }
+                    is SpecialUnitType.Farmer, is SpecialUnitType.FarmerSilver, is SpecialUnitType.FarmerGold -> processFarmer(unit, simUnits, grid, events)
+                    is SpecialUnitType.Wizard, is SpecialUnitType.WizardSilver, is SpecialUnitType.WizardGold -> processWizard(unit, simUnits, grid, events)
+                    is StructureUnitType.Farm  -> { /* passive */ }
                 }
             }
 
@@ -191,7 +193,7 @@ class GridBattleEngine {
 
         fun canFitAt(pos: Position): Boolean = (0 until unitSize).all { dx -> (0 until unitSize).all { dy ->
             val t = Position(pos.x + dx, pos.y + dy)
-            grid.isInBounds(t) && grid.isPassable(t)
+            grid.isInBounds(t) && (unit.type.canFly || grid.isPassable(t))
         }}
 
         val valid = candidateSet.filter { canFitAt(it) }
@@ -245,12 +247,13 @@ class GridBattleEngine {
         val occupied = mutableSetOf<Position>()
         for (other in allUnits) {
             if (!other.isAlive || other.id == movingUnit.id || other.type.isStructure) continue
+            if (movingUnit.type.canFly && other.owner == movingUnit.owner) continue
             occupied.addAll(other.occupiedTiles())
         }
 
         fun canFitAt(pos: Position): Boolean = (0 until unitSize).all { dx -> (0 until unitSize).all { dy ->
             val t = Position(pos.x + dx, pos.y + dy)
-            grid.isInBounds(t) && grid.isPassable(t) && t !in occupied
+            grid.isInBounds(t) && (movingUnit.type.canFly || grid.isPassable(t)) && t !in occupied
         }}
 
         if (goal == start) return emptyList()
@@ -285,7 +288,7 @@ class GridBattleEngine {
 
         fun canFitAt(pos: Position): Boolean = (0 until unitSize).all { dx -> (0 until unitSize).all { dy ->
             val t = Position(pos.x + dx, pos.y + dy)
-            grid.isInBounds(t) && grid.isPassable(t) && t !in enemyOcc
+            grid.isInBounds(t) && (movingUnit.type.canFly || grid.isPassable(t)) && t !in enemyOcc
         }}
 
         if (goal == start) return emptyList()
@@ -422,6 +425,75 @@ class GridBattleEngine {
         }
     }
 
+    private fun processWizard(unit: BattleUnit, allUnits: MutableList<BattleUnit>, grid: BattleGrid, events: MutableList<BattleEvent>) {
+        val enemies = getEnemiesOf(unit, allUnits)
+        val closestEnemy = enemies.minByOrNull { unit.distanceToPosition(it.position) } ?: return
+
+        if (!unit.canAct) {
+            moveToward(unit, closestEnemy.position, allUnits, grid, events)
+            return
+        }
+
+        val fireball = (unit.type as SpecialUnitType).ability as SpecialAbility.Fireball
+
+        // Find enemies in attack range (Manhattan distance from wizard to enemy tile).
+        val enemiesInRange = enemies.filter { enemy ->
+            unit.position.manhattanDistance(enemy.position) in unit.type.attackRange
+        }
+
+        if (enemiesInRange.isEmpty()) {
+            moveToward(unit, closestEnemy.position, allUnits, grid, events)
+            return
+        }
+
+        // Pick the TARGET TILE (not a unit) that maximises total enemies hit by the 3×3 blast.
+        // Candidates = positions of all in-range enemies. For each candidate tile, count
+        // all enemies whose footprint overlaps the blast radius.
+        val bestTile = enemiesInRange.maxByOrNull { candidate ->
+            enemies.count { enemy ->
+                enemy.occupiedTiles().any { tile ->
+                    tile.distanceTo(candidate.position) <= fireball.radius
+                }
+            }
+        }?.position ?: return
+
+        // Blast area: all tiles within Chebyshev radius of bestTile.
+        val blastTiles = buildSet {
+            for (dx in -fireball.radius..fireball.radius)
+                for (dy in -fireball.radius..fireball.radius)
+                    add(Position(bestTile.x + dx, bestTile.y + dy))
+        }
+
+        // Collect ALL living units (friend + foe) whose footprint overlaps the blast.
+        val hitUnits = allUnits.filter { target ->
+            target.isAlive && target.id != unit.id &&
+            target.occupiedTiles().any { it in blastTiles }
+        }
+
+        if (hitUnits.isEmpty()) {
+            moveToward(unit, closestEnemy.position, allUnits, grid, events)
+            return
+        }
+
+        // Apply damage and record hits.
+        val hits = hitUnits.map { target ->
+            target.takeDamage(fireball.power)
+            BattleEvent.FireballHit(target.id, target.displayName, target.position, fireball.power, target.currentHp)
+        }
+
+        events.add(BattleEvent.Fireball(
+            unit.id, unit.displayName, unit.position, unit.type,
+            bestTile, fireball.radius, hits
+        ))
+
+        // Death events for any units killed by the blast.
+        for (target in hitUnits) {
+            if (!target.isAlive) events.add(BattleEvent.Death(target.id, target.displayName))
+        }
+
+        unit.startCooldown()
+    }
+
     // ─── Movement ────────────────────────────────────────────────────────────────
 
     private fun moveToward(unit: BattleUnit, target: Position, allUnits: List<BattleUnit>, grid: BattleGrid, events: MutableList<BattleEvent>) {
@@ -475,7 +547,7 @@ class GridBattleEngine {
         fun canFitAt(pos: Position): Boolean {
             for (dx in 0 until unitSize) for (dy in 0 until unitSize) {
                 val tile = Position(pos.x + dx, pos.y + dy)
-                if (!grid.isInBounds(tile) || !grid.isPassable(tile) || tile in enemyOccupied) return false
+                if (!grid.isInBounds(tile) || (!movingUnit.type.canFly && !grid.isPassable(tile)) || tile in enemyOccupied) return false
             }
             return true
         }
@@ -526,13 +598,14 @@ class GridBattleEngine {
         for (other in allUnits) {
             if (!other.isAlive || other.id == movingUnit.id) continue
             if (other.type.isStructure) continue  // structures are passable — units walk through them
+            if (movingUnit.type.canFly && other.owner == movingUnit.owner) continue
             occupiedByOthers.addAll(other.occupiedTiles())
         }
 
         fun canFitAt(pos: Position): Boolean {
             for (dx in 0 until unitSize) for (dy in 0 until unitSize) {
                 val tile = Position(pos.x + dx, pos.y + dy)
-                if (!grid.isInBounds(tile) || !grid.isPassable(tile) || tile in occupiedByOthers) return false
+                if (!grid.isInBounds(tile) || (!movingUnit.type.canFly && !grid.isPassable(tile)) || tile in occupiedByOthers) return false
             }
             return true
         }
@@ -577,13 +650,14 @@ class GridBattleEngine {
         for (other in allUnits) {
             if (!other.isAlive || other.id == unit.id) continue
             if (other.type.isStructure) continue  // structures are passable — can flee through them
+            if (unit.type.canFly && other.owner == unit.owner) continue
             occupiedByOthers.addAll(other.occupiedTiles())
         }
         return getCardinalNeighbors(unit.position)
             .filter { pos ->
                 (0 until unit.size).all { dx -> (0 until unit.size).all { dy ->
                     val tile = Position(pos.x + dx, pos.y + dy)
-                    grid.isInBounds(tile) && grid.isPassable(tile) && tile !in occupiedByOthers
+                    grid.isInBounds(tile) && (unit.type.canFly || grid.isPassable(tile)) && tile !in occupiedByOthers
                 }}
             }
             .maxByOrNull { it.manhattanDistance(threat) }
@@ -658,4 +732,5 @@ class GridBattleEngine {
 
     private fun getAlliesOf(unit: BattleUnit, allUnits: List<BattleUnit>): List<BattleUnit> =
         allUnits.filter { it.isAlive && it.owner == unit.owner }
+
 }

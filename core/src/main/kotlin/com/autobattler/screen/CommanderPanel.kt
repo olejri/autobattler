@@ -72,16 +72,17 @@ class CommanderPanel(commander: Commander) : Table() {
 
         addSep()
 
-        // Roster
+        // Roster — 3-column icon grid
         add(Label("ROSTER", skin, "section")).padBottom(8f).row()
-        val rosterRow = Table()
-        for (type in current.unlockedUnitTypes) {
+        val rosterGrid = Table().left()
+        for ((i, type) in current.unlockedUnitTypes.withIndex()) {
             val cell = Table()
             cell.background = skin.newDrawable("white", Color(0.12f, 0.2f, 0.12f, 1f))
             cell.add(Image(TextureRegionDrawable(TextureRegion(SpriteGenerator.getTexture(type))))).size(32f).pad(4f)
-            rosterRow.add(cell).size(40f).pad(2f)
+            rosterGrid.add(cell).size(40f).pad(2f)
+            if ((i + 1) % 3 == 0) rosterGrid.row()
         }
-        add(rosterRow).padBottom(10f).row()
+        add(rosterGrid).padBottom(10f).row()
 
         // Unlock hint
         val recruitAvail = UnitType.purchasable.any { t ->

@@ -56,6 +56,14 @@ class BattleEffects {
         activeEffects.add(HealEffect(targetScreenX, targetScreenY))
     }
 
+    /**
+     * Fireball explosion: orange/red expanding ring + scatter particles,
+     * covering the full blast area. Blocks playback so hits register before advancing.
+     */
+    fun addExplosion(centerX: Float, centerY: Float, blastPixelRadius: Float) {
+        activeEffects.add(ExplosionEffect(centerX, centerY, blastPixelRadius))
+    }
+
     fun clear() = activeEffects.clear()
 
     // ─── Base Effect ────────────────────────────────────────────────────────────
@@ -248,6 +256,71 @@ class BattleEffects {
                     cy + (ringRadius * sin(r1)).toFloat(),
                     cx + (ringRadius * cos(r2)).toFloat(),
                     cy + (ringRadius * sin(r2)).toFloat()
+                )
+            }
+        }
+    }
+
+    // ─── Fireball Explosion ─────────────────────────────────────────────────────
+
+    private class ExplosionEffect(
+        val cx: Float, val cy: Float, val blastR: Float
+    ) : Effect(duration = 0.55f, blocksPlayback = true) {
+
+        override fun renderFilled(shapeRenderer: ShapeRenderer) {
+            val p = smoothStep(progress)
+            val fade = 1f - p
+
+            // Expanding filled blast disc
+            val discR = blastR * p
+            shapeRenderer.color = Color(1f, 0.45f, 0.05f, fade * 0.35f)
+            shapeRenderer.circle(cx, cy, discR)
+
+            // Inner bright core (shrinks as explosion fades)
+            val coreR = blastR * 0.35f * (1f - p * 0.8f)
+            shapeRenderer.color = Color(1f, 0.85f, 0.2f, fade * 0.75f)
+            shapeRenderer.circle(cx, cy, coreR)
+
+            // Flying sparks scattered outward
+            val numSparks = 12
+            for (i in 0 until numSparks) {
+                val angle = (360f / numSparks * i + p * 30f).toDouble()
+                val rad = Math.toRadians(angle)
+                val dist = blastR * 0.6f * p
+                val sx = cx + (dist * cos(rad)).toFloat()
+                val sy = cy + (dist * sin(rad)).toFloat()
+                val sparkAlpha = fade * (0.5f + 0.5f * sin((i + p * 5).toFloat()))
+                shapeRenderer.color = Color(1f, if (i % 2 == 0) 0.6f else 0.3f, 0.1f, sparkAlpha)
+                shapeRenderer.circle(sx, sy, 3f * (1f - p * 0.7f))
+            }
+        }
+
+        override fun renderLine(shapeRenderer: ShapeRenderer) {
+            val p = smoothStep(progress)
+            val fade = 1f - p
+
+            // Outer ring expands quickly then fades
+            val ringR = blastR * p.coerceAtMost(1f)
+            shapeRenderer.color = Color(1f, 0.6f, 0.1f, fade * 0.9f)
+            val segs = 32
+            for (i in 0 until segs) {
+                val a1 = Math.toRadians((360f * i / segs).toDouble())
+                val a2 = Math.toRadians((360f * (i + 1) / segs).toDouble())
+                shapeRenderer.line(
+                    cx + (ringR * cos(a1)).toFloat(), cy + (ringR * sin(a1)).toFloat(),
+                    cx + (ringR * cos(a2)).toFloat(), cy + (ringR * sin(a2)).toFloat()
+                )
+            }
+
+            // Second inner ring
+            val innerR = ringR * 0.55f
+            shapeRenderer.color = Color(1f, 0.9f, 0.3f, fade * 0.6f)
+            for (i in 0 until segs) {
+                val a1 = Math.toRadians((360f * i / segs).toDouble())
+                val a2 = Math.toRadians((360f * (i + 1) / segs).toDouble())
+                shapeRenderer.line(
+                    cx + (innerR * cos(a1)).toFloat(), cy + (innerR * sin(a1)).toFloat(),
+                    cx + (innerR * cos(a2)).toFloat(), cy + (innerR * sin(a2)).toFloat()
                 )
             }
         }

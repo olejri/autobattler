@@ -84,6 +84,9 @@ class SandboxScreen(private val game: AutobattlerGame) : ScreenAdapter() {
     private var hoverGridX  = -1
     private var hoverGridY  = -1
 
+    // ─── Unit panel scroll ────────────────────────────────────────────────────
+    private var unitScrollOffset = 0  // how many unit slots are scrolled past the top
+
     // ─── All placed units (for rendering and scenario extraction) ────────────
     private val allUnitsById = mutableMapOf<Int, BattleUnit>()
 
@@ -486,12 +489,16 @@ class SandboxScreen(private val game: AutobattlerGame) : ScreenAdapter() {
         font.draw(batch, hint, 8f, hintY)
         batch.end()
 
-        // ── Unit slots ───────────────────────────────────────────────────────
+        // ── Unit slots (only those visible in the panel) ─────────────────────
         val slotH  = 54f
         val slotW  = panelW - 12f
         val units  = UnitType.all
+        val maxVisible = maxVisibleSlots(screenH)
+
         for ((i, type) in units.withIndex()) {
             val sy = unitSlotY(i, screenH)
+            if (sy + slotH < 40f || sy > hintY - 4f) continue  // outside visible band
+
             shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
             shapeRenderer.color = Color(0.12f, 0.16f, 0.12f, 1f)
             shapeRenderer.rect(6f, sy, slotW, slotH)
@@ -511,6 +518,45 @@ class SandboxScreen(private val game: AutobattlerGame) : ScreenAdapter() {
             batch.setColor(Color.WHITE)
             batch.end()
         }
+
+        // ── Scroll arrows (shown when list overflows) ─────────────────────────
+        if (units.size > maxVisible) {
+            val arrW = slotW / 2f - 2f
+            val arrH = 28f
+            val arrY = 6f           // bottom of screen
+            val canUp   = unitScrollOffset > 0
+            val canDown = unitScrollOffset < units.size - maxVisible
+
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
+            shapeRenderer.color = if (canUp) Color(0.2f, 0.4f, 0.2f, 1f) else Color(0.1f, 0.1f, 0.1f, 1f)
+            shapeRenderer.rect(6f, arrY, arrW, arrH)
+            shapeRenderer.color = if (canDown) Color(0.2f, 0.4f, 0.2f, 1f) else Color(0.1f, 0.1f, 0.1f, 1f)
+            shapeRenderer.rect(6f + arrW + 4f, arrY, arrW, arrH)
+            shapeRenderer.end()
+
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Line)
+            shapeRenderer.color = if (canUp) Color.WHITE else Color(0.3f, 0.3f, 0.3f, 1f)
+            shapeRenderer.rect(6f, arrY, arrW, arrH)
+            shapeRenderer.color = if (canDown) Color.WHITE else Color(0.3f, 0.3f, 0.3f, 1f)
+            shapeRenderer.rect(6f + arrW + 4f, arrY, arrW, arrH)
+            shapeRenderer.end()
+
+            batch.begin()
+            font.color = if (canUp) Color.WHITE else Color(0.35f, 0.35f, 0.35f, 1f)
+            font.draw(batch, "▲ UP", 6f + arrW / 2f - 14f, arrY + arrH - 6f)
+            font.color = if (canDown) Color.WHITE else Color(0.35f, 0.35f, 0.35f, 1f)
+            font.draw(batch, "▼ DOWN", 6f + arrW + 4f + arrW / 2f - 22f, arrY + arrH - 6f)
+            batch.end()
+        }
+    }
+
+    /** How many unit slots fit in the panel at once. */
+    private fun maxVisibleSlots(screenH: Float): Int {
+        val btnH = 40f
+        val factionBlockH = PlacementTab.entries.size * (btnH + 5f) + 24f
+        val listAreaH = screenH - 50f - factionBlockH - 40f  // 40 = scroll-arrow strip + small margin
+        val slotH = 54f + 4f
+        return maxOf(1, (listAreaH / slotH).toInt())
     }
 
     private fun factionButtonY(index: Int, screenH: Float): Float {
@@ -526,7 +572,14 @@ class SandboxScreen(private val game: AutobattlerGame) : ScreenAdapter() {
         val btnH   = 40f
         val factionBlockH = PlacementTab.entries.size * (btnH + 5f) + 24f  // buttons + hint
         val startY = screenH - 50f - factionBlockH
-        return startY - index * (slotH + gap)
+        return startY - (index - unitScrollOffset) * (slotH + gap)
+    }
+
+    /** Y of the scroll-arrow button area at the bottom of the panel. */
+    private fun scrollButtonsY(screenH: Float): Float {
+        val btnH  = 40f
+        val factionBlockH = PlacementTab.entries.size * (btnH + 5f) + 24f
+        return screenH - 50f - factionBlockH  // same as unitSlotY start — buttons drawn below list
     }
 
     // ─── Input ───────────────────────────────────────────────────────────────
@@ -586,19 +639,43 @@ class SandboxScreen(private val game: AutobattlerGame) : ScreenAdapter() {
                 }
 
                 SandboxPhase.UNIT_PLACEMENT -> {
+                    val screenH = Gdx.graphics.height.toFloat()
                     // Faction button click
                     for ((i, tab) in PlacementTab.entries.withIndex()) {
-                        val by  = factionButtonY(i, Gdx.graphics.height.toFloat())
+                        val by  = factionButtonY(i, screenH)
                         val btnW = gridOffsetX - 12f
                         if (screenX >= 6f && screenX <= 6f + btnW && worldY >= by && worldY <= by + 40f) {
                             selectedTab = tab
                             return true
                         }
                     }
+                    // Scroll arrow buttons
+                    val units = UnitType.all
+                    val maxVis = maxVisibleSlots(screenH)
+                    if (units.size > maxVis) {
+                        val slotW  = gridOffsetX - 12f
+                        val arrW   = slotW / 2f - 2f
+                        val arrH   = 28f
+                        val arrY   = 6f
+                        if (worldY >= arrY && worldY <= arrY + arrH) {
+                            if (screenX >= 6f && screenX <= 6f + arrW) {
+                                // UP
+                                if (unitScrollOffset > 0) unitScrollOffset--
+                                return true
+                            }
+                            if (screenX >= 6f + arrW + 4f && screenX <= 6f + arrW + 4f + arrW) {
+                                // DOWN
+                                if (unitScrollOffset < units.size - maxVis) unitScrollOffset++
+                                return true
+                            }
+                        }
+                    }
                     // Unit slot drag start
-                    for ((i, type) in UnitType.all.withIndex()) {
-                        val sy   = unitSlotY(i, Gdx.graphics.height.toFloat())
+                    for ((i, type) in units.withIndex()) {
+                        val sy   = unitSlotY(i, screenH)
                         val slotW = gridOffsetX - 12f
+                        val hintY = factionButtonY(PlacementTab.entries.size - 1, screenH) - 20f
+                        if (sy + 54f < 40f || sy > hintY - 4f) continue  // not visible
                         if (screenX >= 6f && screenX <= 6f + slotW && worldY >= sy && worldY <= sy + 54f) {
                             draggingType = type
                             dragScreenX  = screenX.toFloat()
@@ -680,6 +757,17 @@ class SandboxScreen(private val game: AutobattlerGame) : ScreenAdapter() {
             hoverGridX   = -1
             hoverGridY   = -1
             return true
+        }
+
+        override fun scrolled(amountX: Float, amountY: Float): Boolean {
+            if (phase == SandboxPhase.UNIT_PLACEMENT) {
+                val screenH = Gdx.graphics.height.toFloat()
+                val maxVis  = maxVisibleSlots(screenH)
+                val maxOffset = maxOf(0, UnitType.all.size - maxVis)
+                unitScrollOffset = (unitScrollOffset + amountY.toInt()).coerceIn(0, maxOffset)
+                return true
+            }
+            return false
         }
     }
 

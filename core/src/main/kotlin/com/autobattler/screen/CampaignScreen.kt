@@ -4,6 +4,7 @@ import com.autobattler.AutobattlerGame
 import com.autobattler.engine.ScenarioDefinition
 import com.autobattler.engine.Scenarios
 import com.autobattler.model.Commander
+import com.autobattler.model.UnitTier
 import com.autobattler.model.UnitType
 import com.autobattler.render.Fonts
 import com.badlogic.gdx.Gdx
@@ -263,42 +264,6 @@ class CampaignScreen(private val game: AutobattlerGame) : ScreenAdapter() {
         infoArea.add(Image(skin.newDrawable("white", Color(0.25f, 0.25f, 0.4f, 0.4f))))
             .fillX().height(1f).padBottom(14f).row()
 
-        // Recruitment
-        infoArea.add(Label("Recruitment", skin, "header")).left().padBottom(8f).row()
-        val recruitTable = Table().left()
-        for (type in UnitType.purchasable) {
-            val isUnlocked = type.id in commander.unlockedUnitTypeIds
-            val levelMet   = commander.level >= type.unlockLevel
-            val canAfford  = commander.gold >= type.unlockCost
-            when {
-                type.unlockLevel == 1 || isUnlocked ->
-                    recruitTable.add(Label("✓  ${type.displayName}  (${type.cost}g/battle)", skin, "unlocked"))
-                        .left().padBottom(4f).row()
-                !levelMet ->
-                    recruitTable.add(Label("🔒  ${type.displayName}  — Level ${type.unlockLevel} required", skin, "locked"))
-                        .left().padBottom(4f).row()
-                else -> {
-                    val btn = TextButton(
-                        "RECRUIT  ${type.displayName}   ${type.unlockCost}g",
-                        skin, if (canAfford) "recruit" else "recruitDim"
-                    )
-                    if (canAfford) {
-                        btn.addListener(object : ClickListener() {
-                            override fun clicked(event: InputEvent?, x: Float, y: Float) {
-                                val updated = commander.unlock(type)
-                                game.commander = updated
-                                game.saveManager.save(updated)
-                                commanderPanel.refresh(updated)
-                                populateInfoArea(updated)
-                            }
-                        })
-                    }
-                    recruitTable.add(btn).left().width(360f).height(42f).padBottom(4f).row()
-                }
-            }
-        }
-        infoArea.add(recruitTable).left().padBottom(20f).row()
-
         addActionButtons(commander, scenario, isLocked)
     }
 
@@ -317,6 +282,15 @@ class CampaignScreen(private val game: AutobattlerGame) : ScreenAdapter() {
             })
             btnRow.add(deployBtn).width(260f).height(68f).padRight(16f)
         }
+
+        // Recruit Troops button — opens the full Barracks screen
+        val recruitBtn = TextButton("🛡  RECRUIT TROOPS", skin, "recruit")
+        recruitBtn.addListener(object : ClickListener() {
+            override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                game.screen = RecruitmentScreen(game)
+            }
+        })
+        btnRow.add(recruitBtn).width(230f).height(52f).padRight(16f)
 
         // Work for Hire (pass day + earn gold, ambush chance) — label shows level-scaled gold
         val laborGold = commander.laborGold
@@ -486,4 +460,3 @@ class CampaignScreen(private val game: AutobattlerGame) : ScreenAdapter() {
         return skin
     }
 }
-

@@ -198,6 +198,15 @@ object BattleLogger {
                 is BattleEvent.FarmGold -> {
                     sb.appendLine("│  [FARM_GOLD] Farm #${event.farmId} yielded +${event.amount}g")
                 }
+                is BattleEvent.Fireball -> {
+                    val casterTag = unitById[event.casterId]?.let { unitTag(it) } ?: event.casterName
+                    val blastDesc = "(${event.targetTile.x},${event.targetTile.y}) radius ${event.radius}"
+                    sb.appendLine("│  [FIREBALL] $casterTag → tile $blastDesc | ${event.hits.size} unit(s) hit")
+                    for (hit in event.hits) {
+                        val hitTag = unitById[hit.unitId]?.let { unitTag(it) } ?: hit.unitName
+                        sb.appendLine("│             ☄ $hitTag at (${hit.unitPos.x},${hit.unitPos.y}) — ${hit.damage} dmg | HP: ${hit.hpAfter}")
+                    }
+                }
             }
         }
 
@@ -213,7 +222,8 @@ object BattleLogger {
         sb.appendLine("│  Total Events: ${outcome.events.size}")
 
         val kills = outcome.events.count { it is BattleEvent.Death }
-        val attacks = outcome.events.count { it is BattleEvent.Attack }
+        val attacks = outcome.events.count { it is BattleEvent.Attack } +
+                      outcome.events.count { it is BattleEvent.Fireball }
         val heals = outcome.events.count { it is BattleEvent.Heal }
         val moves = outcome.events.count { it is BattleEvent.Move }
 

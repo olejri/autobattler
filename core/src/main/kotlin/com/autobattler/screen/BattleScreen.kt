@@ -156,6 +156,15 @@ class BattleScreen(
     private val rosterBarH = 160f
     private val rosterSlotSize = 110f
     private val rosterStartX = gridOffsetX  // left-aligned under the grid
+    private val rosterArrowW = 36f          // width of each ◀/▶ scroll button
+    private var rosterScrollOffset = 0      // index of first visible slot
+
+    /** How many roster slots fit side-by-side between the two arrows. */
+    private val maxVisibleRosterSlots: Int get() {
+        val barW = grid.width * cellSize
+        val usable = barW - rosterArrowW * 2
+        return maxOf(1, (usable / (rosterSlotSize + 12f)).toInt())
+    }
 
 
     // ─── Lifecycle ──────────────────────────────────────────────────────────────
@@ -499,6 +508,9 @@ class BattleScreen(
         val barY = rosterBarY
         val barW = grid.width * cellSize
         val barH = rosterBarH
+        val needsScroll = shopTypes.size > maxVisibleRosterSlots
+        val arrowW = if (needsScroll) rosterArrowW else 0f
+        val slotsAreaX = barX + arrowW
 
         // Background
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
@@ -511,9 +523,33 @@ class BattleScreen(
         shapeRenderer.rect(barX, barY, barW, barH)
         shapeRenderer.end()
 
-        // Slot for each purchasable type
-        for ((i, type) in shopTypes.withIndex()) {
-            val slotX = barX + i * (rosterSlotSize + 12f) + 12f
+        // Scroll arrows
+        if (needsScroll) {
+            val canLeft  = rosterScrollOffset > 0
+            val canRight = rosterScrollOffset < shopTypes.size - maxVisibleRosterSlots
+            val arCY = barY + barH / 2
+
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
+            shapeRenderer.color = if (canLeft)  Color(0.18f, 0.35f, 0.18f, 1f) else Color(0.1f, 0.1f, 0.1f, 1f)
+            shapeRenderer.rect(barX, barY, arrowW, barH)
+            shapeRenderer.color = if (canRight) Color(0.18f, 0.35f, 0.18f, 1f) else Color(0.1f, 0.1f, 0.1f, 1f)
+            shapeRenderer.rect(barX + barW - arrowW, barY, arrowW, barH)
+            shapeRenderer.end()
+
+            batch.begin()
+            font.color = if (canLeft)  Color.WHITE else Color(0.35f, 0.35f, 0.35f, 1f)
+            font.draw(batch, "◀", barX + 8f, arCY + 8f)
+            font.color = if (canRight) Color.WHITE else Color(0.35f, 0.35f, 0.35f, 1f)
+            font.draw(batch, "▶", barX + barW - arrowW + 8f, arCY + 8f)
+            batch.end()
+        }
+
+        // Visible slots
+        val visCount = minOf(maxVisibleRosterSlots, shopTypes.size - rosterScrollOffset)
+        for (vi in 0 until visCount) {
+            val i = rosterScrollOffset + vi
+            val type = shopTypes[i]
+            val slotX = slotsAreaX + vi * (rosterSlotSize + 12f) + 12f
             val slotY = barY + (barH - rosterSlotSize) / 2
 
             val canAfford = gold >= type.cost
@@ -521,10 +557,7 @@ class BattleScreen(
 
             // Slot background
             shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
-            shapeRenderer.color = when {
-                canAfford -> Color(0.12f, 0.2f, 0.12f, 1f)
-                else -> Color(0.15f, 0.12f, 0.12f, 1f)
-            }
+            shapeRenderer.color = if (canAfford) Color(0.12f, 0.2f, 0.12f, 1f) else Color(0.15f, 0.12f, 0.12f, 1f)
             shapeRenderer.rect(slotX, slotY, rosterSlotSize, rosterSlotSize)
             shapeRenderer.end()
 
@@ -550,19 +583,29 @@ class BattleScreen(
             font.color = if (canAfford) Color.WHITE else Color.DARK_GRAY
             font.draw(batch, type.displayName, slotX + 4f, slotY + rosterSlotSize - 6f)
 
-            // Unplaced count badge (units bought but not yet on map)
+            if (type.tier != UnitTier.BRONZE) {
+                val tierColor = if (type.tier == UnitTier.SILVER) Color(0.8f, 0.85f, 0.9f, 1f) else Color(1f, 0.85f, 0.1f, 1f)
+                font.color = tierColor
+                font.draw(batch, type.tier.symbol, slotX + rosterSlotSize - 14f, slotY + rosterSlotSize - 24f)
+            }
+
+            // Unplaced count badge
             if (ownedCount > 0) {
                 font.color = Color.CYAN
-                font.draw(batch, "×$ownedCount", slotX + rosterSlotSize - 22f, slotY + rosterSlotSize - 6f)
+                font.draw(batch, "×$ownedCount", slotX + rosterSlotSize - 26f, slotY + rosterSlotSize - 6f)
             }
             batch.end()
         }
 
-        // Hints (gold is shown in the CommanderPanel on the left)
+        // Hints + scroll counter
         batch.begin()
         font.color = Color.LIGHT_GRAY
-        font.draw(batch, "Drag units onto the green side", barX + shopTypes.size * (rosterSlotSize + 12f) + 24f, barY + barH - 16f)
-        font.draw(batch, "Click placed unit to refund",    barX + shopTypes.size * (rosterSlotSize + 12f) + 24f, barY + barH - 36f)
+        font.draw(batch, "Drag units onto the green side", barX + 4f, barY + barH + 16f)
+        if (needsScroll) {
+            font.color = Color(0.5f, 0.65f, 0.5f, 1f)
+            val end = minOf(rosterScrollOffset + maxVisibleRosterSlots, shopTypes.size)
+            font.draw(batch, "${rosterScrollOffset + 1}-$end / ${shopTypes.size}", barX + barW - 90f, barY + barH + 16f)
+        }
         batch.end()
     }
 
@@ -720,8 +763,12 @@ class BattleScreen(
                 val ax = gridOffsetX + event.attackerPos.x * cellSize + cellSize / 2
                 val ay = gridOffsetY + event.attackerPos.y * cellSize + cellSize / 2
                 when (event.attackerType) {
-                    is NormalUnitType.Melee   -> { battleEffects.addSlash(tx, ty, event.attackerPos.x > event.targetPos.x); SoundGenerator.getSwordClash().play(0.5f) }
-                    is NormalUnitType.Ranged  -> { battleEffects.addArrow(ax, ay, tx, ty); SoundGenerator.getArrowShot().play(0.4f) }
+                    is NormalUnitType.Melee, is NormalUnitType.MeleeSilver, is NormalUnitType.MeleeGold,
+                    is NormalUnitType.Knight, is NormalUnitType.KnightSilver, is NormalUnitType.KnightGold,
+                    is NormalUnitType.GriffinRider, is NormalUnitType.GriffinRiderSilver, is NormalUnitType.GriffinRiderGold ->
+                        { battleEffects.addSlash(tx, ty, event.attackerPos.x > event.targetPos.x); SoundGenerator.getSwordClash().play(0.5f) }
+                    is NormalUnitType.Ranged, is NormalUnitType.RangedSilver, is NormalUnitType.RangedGold ->
+                        { battleEffects.addArrow(ax, ay, tx, ty); SoundGenerator.getArrowShot().play(0.4f) }
                     is MonsterUnitType.Bear   -> { battleEffects.addSlash(tx, ty, event.attackerPos.x > event.targetPos.x); SoundGenerator.getSwordClash().play(0.7f) }
                     is MonsterUnitType.Wolf   -> { battleEffects.addSlash(tx, ty, event.attackerPos.x > event.targetPos.x); SoundGenerator.getSwordClash().play(0.55f) }
                     is MonsterUnitType.Goblin -> { battleEffects.addSlash(tx, ty, event.attackerPos.x > event.targetPos.x); SoundGenerator.getSwordClash().play(0.4f) }
@@ -732,8 +779,10 @@ class BattleScreen(
                     is MonsterUnitType.OrcWarrior -> { battleEffects.addSlash(tx, ty, event.attackerPos.x > event.targetPos.x); SoundGenerator.getSwordClash().play(0.6f) }
                     is MonsterUnitType.Spider -> { battleEffects.addSlash(tx, ty, event.attackerPos.x > event.targetPos.x); SoundGenerator.getSwordClash().play(0.45f) }
                     is MonsterUnitType.Dragon -> { battleEffects.addSlash(tx, ty, event.attackerPos.x > event.targetPos.x); SoundGenerator.getSwordClash().play(0.9f) }
-                    is NormalUnitType.Healer  -> battleEffects.addSlash(tx, ty, false)
-                    is SpecialUnitType.Farmer -> {}
+                    is NormalUnitType.Healer, is NormalUnitType.HealerSilver, is NormalUnitType.HealerGold -> battleEffects.addSlash(tx, ty, false)
+                    is SpecialUnitType.Farmer, is SpecialUnitType.FarmerSilver, is SpecialUnitType.FarmerGold -> {}
+                    is SpecialUnitType.Wizard, is SpecialUnitType.WizardSilver, is SpecialUnitType.WizardGold ->
+                        { battleEffects.addArrow(ax, ay, tx, ty); SoundGenerator.getArrowShot().play(0.55f) }
                     is StructureUnitType.Farm -> {}
                 }
             }
@@ -766,6 +815,22 @@ class BattleScreen(
                 flashUnitId = event.farmId; flashTimer = 0.25f; flashColor = Color(1f, 0.9f, 0.1f, 1f)
                 refreshCommanderPanel()
             }
+            is BattleEvent.Fireball -> {
+                val hitsDesc = if (event.hits.isEmpty()) "missed!" else "${event.hits.size} unit(s) hit!"
+                battleLog.add("${event.casterName} Fireball → (${event.targetTile.x},${event.targetTile.y})  $hitsDesc")
+                // Update HP for every unit caught in the blast
+                for (hit in event.hits) {
+                    renderHp[hit.unitId] = hit.hpAfter
+                }
+                // Reset wizard cooldown
+                renderCooldown[event.casterId] = event.casterType.cooldown
+                // Explosion visual centred on the target tile, covering the blast radius
+                val tx = gridOffsetX + event.targetTile.x * cellSize + cellSize / 2
+                val ty = gridOffsetY + event.targetTile.y * cellSize + cellSize / 2
+                val blastPx = cellSize * (event.radius + 0.5f)
+                battleEffects.addExplosion(tx, ty, blastPx)
+                SoundGenerator.getArrowShot().play(0.85f)
+            }
         }
     }
 
@@ -779,6 +844,9 @@ class BattleScreen(
             val worldY = Gdx.graphics.height - screenY.toFloat()
 
             if (phase == Phase.SETUP) {
+                // Check scroll arrows first
+                if (tryRosterArrowClick(screenX.toFloat(), worldY)) return true
+
                 // Check roster bar click → start drag
                 val slotType = getRosterSlotAt(screenX.toFloat(), worldY)
                 if (slotType != null) {
@@ -844,16 +912,55 @@ class BattleScreen(
             rebuildUI()
             return true
         }
+
+        override fun scrolled(amountX: Float, amountY: Float): Boolean {
+            if (phase == Phase.SETUP && shopTypes.size > maxVisibleRosterSlots) {
+                val maxOffset = shopTypes.size - maxVisibleRosterSlots
+                rosterScrollOffset = (rosterScrollOffset + amountY.toInt()).coerceIn(0, maxOffset)
+                return true
+            }
+            return false
+        }
     }
 
     private fun getRosterSlotAt(sx: Float, sy: Float): UnitType? {
         if (sy !in rosterBarY..(rosterBarY + rosterBarH)) return null
-        for ((i, type) in shopTypes.withIndex()) {
-            val slotX = rosterStartX + i * (rosterSlotSize + 12f) + 12f
+        val barX = rosterStartX
+        val barW = grid.width * cellSize
+        val needsScroll = shopTypes.size > maxVisibleRosterSlots
+        val arrowW = if (needsScroll) rosterArrowW else 0f
+        val slotsAreaX = barX + arrowW
+        val slotsAreaEnd = barX + barW - arrowW
+
+        // Don't register hits on arrow buttons
+        if (needsScroll && (sx < slotsAreaX || sx > slotsAreaEnd)) return null
+
+        val visCount = minOf(maxVisibleRosterSlots, shopTypes.size - rosterScrollOffset)
+        for (vi in 0 until visCount) {
+            val slotX = slotsAreaX + vi * (rosterSlotSize + 12f) + 12f
             val slotY = rosterBarY + (rosterBarH - rosterSlotSize) / 2
-            if (sx in slotX..(slotX + rosterSlotSize) && sy in slotY..(slotY + rosterSlotSize)) return type
+            if (sx in slotX..(slotX + rosterSlotSize) && sy in slotY..(slotY + rosterSlotSize))
+                return shopTypes[rosterScrollOffset + vi]
         }
         return null
+    }
+
+    /** Returns true if sx,sy landed on a scroll arrow. Scrolls and returns true if so. */
+    private fun tryRosterArrowClick(sx: Float, sy: Float): Boolean {
+        if (sy !in rosterBarY..(rosterBarY + rosterBarH)) return false
+        if (!( shopTypes.size > maxVisibleRosterSlots)) return false
+        val barX = rosterStartX
+        val barW = grid.width * cellSize
+        val maxOffset = shopTypes.size - maxVisibleRosterSlots
+        if (sx in barX..(barX + rosterArrowW)) {
+            if (rosterScrollOffset > 0) rosterScrollOffset--
+            return true
+        }
+        if (sx in (barX + barW - rosterArrowW)..(barX + barW)) {
+            if (rosterScrollOffset < maxOffset) rosterScrollOffset++
+            return true
+        }
+        return false
     }
 
     private fun removePlayerUnit(unit: BattleUnit) {
@@ -1069,4 +1176,3 @@ class BattleScreen(
         commanderWidget?.dispose()
     }
 }
-

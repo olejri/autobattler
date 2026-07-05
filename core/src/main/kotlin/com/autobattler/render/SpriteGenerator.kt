@@ -20,12 +20,29 @@ object SpriteGenerator {
     private const val RADIUS = 26
 
     private var warriorTexture: Texture? = null
+    private var warriorSilverTexture: Texture? = null
+    private var warriorGoldTexture: Texture? = null
     private var archerTexture: Texture? = null
+    private var archerSilverTexture: Texture? = null
+    private var archerGoldTexture: Texture? = null
     private var clericTexture: Texture? = null
+    private var clericSilverTexture: Texture? = null
+    private var clericGoldTexture: Texture? = null
+    private var knightTexture: Texture? = null
+    private var knightSilverTexture: Texture? = null
+    private var knightGoldTexture: Texture? = null
+    private var wizardTexture: Texture? = null
+    private var wizardSilverTexture: Texture? = null
+    private var wizardGoldTexture: Texture? = null
+    private var griffinRiderTexture: Texture? = null
+    private var griffinRiderSilverTexture: Texture? = null
+    private var griffinRiderGoldTexture: Texture? = null
     private var bearTexture: Texture? = null
     private var wolfTexture: Texture? = null
     private var commanderTexture: Texture? = null
     private var farmerTexture: Texture? = null
+    private var farmerSilverTexture: Texture? = null
+    private var farmerGoldTexture: Texture? = null
     private var farmTexture: Texture? = null
     private var goblinTexture: Texture? = null
     private var skeletonTexture: Texture? = null
@@ -37,9 +54,21 @@ object SpriteGenerator {
     private var dragonTexture: Texture? = null
 
     fun getTexture(type: UnitType): Texture = when (type) {
-        is NormalUnitType.Melee        -> warriorTexture    ?: generateWarrior().also    { warriorTexture = it }
-        is NormalUnitType.Ranged       -> archerTexture     ?: generateArcher().also     { archerTexture = it }
-        is NormalUnitType.Healer       -> clericTexture     ?: generateCleric().also     { clericTexture = it }
+        is NormalUnitType.Melee              -> warriorTexture           ?: generateWarrior().also { warriorTexture = it }
+        is NormalUnitType.MeleeSilver        -> warriorSilverTexture     ?: generateWarrior(UnitTier.SILVER).also { warriorSilverTexture = it }
+        is NormalUnitType.MeleeGold          -> warriorGoldTexture       ?: generateWarrior(UnitTier.GOLD).also { warriorGoldTexture = it }
+        is NormalUnitType.Ranged             -> archerTexture            ?: generateArcher().also { archerTexture = it }
+        is NormalUnitType.RangedSilver       -> archerSilverTexture      ?: generateArcher(UnitTier.SILVER).also { archerSilverTexture = it }
+        is NormalUnitType.RangedGold         -> archerGoldTexture        ?: generateArcher(UnitTier.GOLD).also { archerGoldTexture = it }
+        is NormalUnitType.Healer             -> clericTexture            ?: generateCleric().also { clericTexture = it }
+        is NormalUnitType.HealerSilver       -> clericSilverTexture      ?: generateCleric(UnitTier.SILVER).also { clericSilverTexture = it }
+        is NormalUnitType.HealerGold         -> clericGoldTexture        ?: generateCleric(UnitTier.GOLD).also { clericGoldTexture = it }
+        is NormalUnitType.Knight             -> knightTexture            ?: generateKnight().also { knightTexture = it }
+        is NormalUnitType.KnightSilver       -> knightSilverTexture      ?: generateKnight(UnitTier.SILVER).also { knightSilverTexture = it }
+        is NormalUnitType.KnightGold         -> knightGoldTexture        ?: generateKnight(UnitTier.GOLD).also { knightGoldTexture = it }
+        is NormalUnitType.GriffinRider       -> griffinRiderTexture      ?: generateGriffinRider().also { griffinRiderTexture = it }
+        is NormalUnitType.GriffinRiderSilver -> griffinRiderSilverTexture ?: generateGriffinRider(UnitTier.SILVER).also { griffinRiderSilverTexture = it }
+        is NormalUnitType.GriffinRiderGold   -> griffinRiderGoldTexture  ?: generateGriffinRider(UnitTier.GOLD).also { griffinRiderGoldTexture = it }
         is MonsterUnitType.Bear        -> bearTexture       ?: generateBear().also       { bearTexture = it }
         is MonsterUnitType.Wolf        -> wolfTexture       ?: generateWolf().also       { wolfTexture = it }
         is MonsterUnitType.Goblin      -> goblinTexture     ?: generateGoblin().also     { goblinTexture = it }
@@ -50,7 +79,12 @@ object SpriteGenerator {
         is MonsterUnitType.OrcWarrior  -> orcWarriorTexture ?: generateOrcWarrior().also { orcWarriorTexture = it }
         is MonsterUnitType.Spider      -> spiderTexture     ?: generateSpider().also     { spiderTexture = it }
         is MonsterUnitType.Dragon      -> dragonTexture     ?: generateDragon().also     { dragonTexture = it }
-        is SpecialUnitType.Farmer      -> farmerTexture     ?: generateFarmer().also     { farmerTexture = it }
+        is SpecialUnitType.Farmer      -> farmerTexture       ?: generateFarmer().also { farmerTexture = it }
+        is SpecialUnitType.FarmerSilver -> farmerSilverTexture ?: generateFarmer(UnitTier.SILVER).also { farmerSilverTexture = it }
+        is SpecialUnitType.FarmerGold -> farmerGoldTexture   ?: generateFarmer(UnitTier.GOLD).also { farmerGoldTexture = it }
+        is SpecialUnitType.Wizard     -> wizardTexture       ?: generateWizard().also { wizardTexture = it }
+        is SpecialUnitType.WizardSilver -> wizardSilverTexture ?: generateWizard(UnitTier.SILVER).also { wizardSilverTexture = it }
+        is SpecialUnitType.WizardGold -> wizardGoldTexture   ?: generateWizard(UnitTier.GOLD).also { wizardGoldTexture = it }
         is StructureUnitType.Farm      -> farmTexture       ?: generateFarm().also       { farmTexture = it }
     }
 
@@ -58,15 +92,25 @@ object SpriteGenerator {
         commanderTexture ?: generateCommander().also { commanderTexture = it }
 
     fun dispose() {
-        warriorTexture?.dispose(); archerTexture?.dispose(); clericTexture?.dispose()
+        warriorTexture?.dispose(); warriorSilverTexture?.dispose(); warriorGoldTexture?.dispose()
+        archerTexture?.dispose(); archerSilverTexture?.dispose(); archerGoldTexture?.dispose()
+        clericTexture?.dispose(); clericSilverTexture?.dispose(); clericGoldTexture?.dispose()
+        knightTexture?.dispose(); knightSilverTexture?.dispose(); knightGoldTexture?.dispose()
+        wizardTexture?.dispose(); wizardSilverTexture?.dispose(); wizardGoldTexture?.dispose()
+        griffinRiderTexture?.dispose(); griffinRiderSilverTexture?.dispose(); griffinRiderGoldTexture?.dispose()
         bearTexture?.dispose(); wolfTexture?.dispose(); commanderTexture?.dispose()
-        farmerTexture?.dispose(); farmTexture?.dispose()
+        farmerTexture?.dispose(); farmerSilverTexture?.dispose(); farmerGoldTexture?.dispose(); farmTexture?.dispose()
         goblinTexture?.dispose(); skeletonTexture?.dispose(); darkMageTexture?.dispose()
         trollTexture?.dispose(); banditTexture?.dispose(); orcWarriorTexture?.dispose()
         spiderTexture?.dispose(); dragonTexture?.dispose()
-        warriorTexture = null; archerTexture = null; clericTexture = null
+        warriorTexture = null; warriorSilverTexture = null; warriorGoldTexture = null
+        archerTexture = null; archerSilverTexture = null; archerGoldTexture = null
+        clericTexture = null; clericSilverTexture = null; clericGoldTexture = null
+        knightTexture = null; knightSilverTexture = null; knightGoldTexture = null
+        wizardTexture = null; wizardSilverTexture = null; wizardGoldTexture = null
+        griffinRiderTexture = null; griffinRiderSilverTexture = null; griffinRiderGoldTexture = null
         bearTexture = null; wolfTexture = null; commanderTexture = null
-        farmerTexture = null; farmTexture = null
+        farmerTexture = null; farmerSilverTexture = null; farmerGoldTexture = null; farmTexture = null
         goblinTexture = null; skeletonTexture = null; darkMageTexture = null
         trollTexture = null; banditTexture = null; orcWarriorTexture = null
         spiderTexture = null; dragonTexture = null
@@ -74,7 +118,7 @@ object SpriteGenerator {
 
     // ─── Warrior: Shield + Sword ────────────────────────────────────────────────
 
-    private fun generateWarrior(): Texture {
+    private fun generateWarrior(tier: UnitTier = UnitTier.BRONZE): Texture {
         val pixmap = Pixmap(SIZE, SIZE, Pixmap.Format.RGBA8888)
 
         // Background circle
@@ -105,7 +149,7 @@ object SpriteGenerator {
         pixmap.fillTriangle(CENTER, 6, CENTER - 3, 13, CENTER + 3, 13)
 
         // Outer ring
-        pixmap.setColor(Color(0.3f, 0.62f, 1f, 1f))
+        pixmap.setColor(tierRingColor(tier, Color(0.3f, 0.62f, 1f, 1f)))
         drawCircleOutline(pixmap, CENTER, CENTER, RADIUS, 2)
 
         val texture = Texture(pixmap)
@@ -116,7 +160,7 @@ object SpriteGenerator {
 
     // ─── Archer: Bow + Arrow ────────────────────────────────────────────────────
 
-    private fun generateArcher(): Texture {
+    private fun generateArcher(tier: UnitTier = UnitTier.BRONZE): Texture {
         val pixmap = Pixmap(SIZE, SIZE, Pixmap.Format.RGBA8888)
 
         // Background circle
@@ -144,7 +188,7 @@ object SpriteGenerator {
         pixmap.fillTriangle(20, CENTER, 25, CENTER - 4, 25, CENTER + 4)
 
         // Outer ring
-        pixmap.setColor(Color(0f, 0.83f, 0.83f, 1f))
+        pixmap.setColor(tierRingColor(tier, Color(0f, 0.83f, 0.83f, 1f)))
         drawCircleOutline(pixmap, CENTER, CENTER, RADIUS, 2)
 
         val texture = Texture(pixmap)
@@ -155,7 +199,7 @@ object SpriteGenerator {
 
     // ─── Cleric: Staff + Holy Symbol ────────────────────────────────────────────
 
-    private fun generateCleric(): Texture {
+    private fun generateCleric(tier: UnitTier = UnitTier.BRONZE): Texture {
         val pixmap = Pixmap(SIZE, SIZE, Pixmap.Format.RGBA8888)
 
         // Background circle
@@ -187,7 +231,7 @@ object SpriteGenerator {
         drawThickLine(pixmap, 45, 39, 51, 39, 1)
 
         // Outer ring
-        pixmap.setColor(Color(0.25f, 0.88f, 0.3f, 1f))
+        pixmap.setColor(tierRingColor(tier, Color(0.25f, 0.88f, 0.3f, 1f)))
         drawCircleOutline(pixmap, CENTER, CENTER, RADIUS, 2)
 
         val texture = Texture(pixmap)
@@ -325,7 +369,7 @@ object SpriteGenerator {
 
     // ─── Farmer: straw hat + pitchfork ──────────────────────────────────────────
 
-    private fun generateFarmer(): Texture {
+    private fun generateFarmer(tier: UnitTier = UnitTier.BRONZE): Texture {
         val pixmap = Pixmap(SIZE, SIZE, Pixmap.Format.RGBA8888)
 
         // Background circle — earthy olive
@@ -358,7 +402,7 @@ object SpriteGenerator {
         drawThickLine(pixmap, CENTER - 4, CENTER + 2, CENTER - 4, CENTER + 18, 5)
 
         // Outer ring — warm green
-        pixmap.setColor(Color(0.45f, 0.72f, 0.2f, 1f))
+        pixmap.setColor(tierRingColor(tier, Color(0.45f, 0.72f, 0.2f, 1f)))
         drawCircleOutline(pixmap, CENTER, CENTER, RADIUS, 2)
 
         val texture = Texture(pixmap)
@@ -447,6 +491,110 @@ object SpriteGenerator {
         texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
         pixmap.dispose()
         return texture
+    }
+
+    private fun generateKnight(tier: UnitTier = UnitTier.BRONZE): Texture {
+        val size = 128
+        val center = size / 2
+        val radius = 56
+        val pixmap = Pixmap(size, size, Pixmap.Format.RGBA8888)
+
+        pixmap.setColor(Color(0.08f, 0.1f, 0.18f, 1f))
+        pixmap.fillCircle(center, center, radius)
+
+        pixmap.setColor(Color(0.38f, 0.45f, 0.55f, 1f))
+        pixmap.fillCircle(center, center + 18, 26)
+        pixmap.setColor(Color(0.25f, 0.28f, 0.34f, 1f))
+        pixmap.fillCircle(center - 22, center + 12, 15)
+        pixmap.fillCircle(center + 22, center + 12, 15)
+
+        pixmap.setColor(Color(0.72f, 0.75f, 0.8f, 1f))
+        pixmap.fillCircle(center, center - 8, 18)
+        drawThickLine(pixmap, center - 18, center + 10, center + 18, center + 10, 6)
+        drawThickLine(pixmap, center, center - 24, center, center + 16, 5)
+
+        pixmap.setColor(Color(0.2f, 0.35f, 0.7f, 1f))
+        fillShield(pixmap, center - 24, center + 8, 16, 22)
+        pixmap.setColor(Color(0.8f, 0.85f, 0.95f, 1f))
+        drawShieldOutline(pixmap, center - 24, center + 8, 16, 22)
+
+        pixmap.setColor(Color(0.75f, 0.6f, 0.2f, 1f))
+        drawThickLine(pixmap, center + 10, center + 30, center + 34, center - 28, 4)
+        pixmap.setColor(Color(0.9f, 0.9f, 0.95f, 1f))
+        pixmap.fillTriangle(center + 34, center - 34, center + 24, center - 18, center + 40, center - 14)
+
+        pixmap.setColor(Color(0.45f, 0.52f, 0.66f, 1f))
+        drawCircleOutline(pixmap, center, center, radius, 3)
+        if (tier != UnitTier.BRONZE) {
+            pixmap.setColor(tierRingColor(tier, Color.WHITE))
+            drawCircleOutline(pixmap, center, center, radius + 4, 3)
+        }
+
+        return textureFrom(pixmap)
+    }
+
+    private fun generateWizard(tier: UnitTier = UnitTier.BRONZE): Texture {
+        val pixmap = Pixmap(SIZE, SIZE, Pixmap.Format.RGBA8888)
+
+        pixmap.setColor(Color(0.12f, 0.06f, 0.2f, 1f))
+        pixmap.fillCircle(CENTER, CENTER, RADIUS)
+
+        pixmap.setColor(Color(0.45f, 0.18f, 0.7f, 1f))
+        fillShield(pixmap, CENTER, CENTER + 7, 14, 18)
+        pixmap.setColor(Color(0.3f, 0.1f, 0.5f, 1f))
+        pixmap.fillTriangle(CENTER - 10, CENTER - 2, CENTER + 10, CENTER - 2, CENTER, CENTER - 22)
+
+        pixmap.setColor(Color(0.7f, 0.5f, 0.18f, 1f))
+        drawThickLine(pixmap, CENTER + 10, CENTER + 18, CENTER + 6, CENTER - 12, 2)
+        pixmap.setColor(Color(0.55f, 0.8f, 1f, 1f))
+        pixmap.fillCircle(CENTER + 6, CENTER - 15, 4)
+
+        pixmap.setColor(Color(1f, 0.95f, 0.4f, 1f))
+        pixmap.fillCircle(CENTER - 11, CENTER - 6, 1)
+        pixmap.fillCircle(CENTER + 13, CENTER - 2, 1)
+        pixmap.fillCircle(CENTER - 3, CENTER + 11, 1)
+        pixmap.fillCircle(CENTER + 4, CENTER + 5, 1)
+
+        pixmap.setColor(tierRingColor(tier, Color(0.72f, 0.28f, 1f, 1f)))
+        drawCircleOutline(pixmap, CENTER, CENTER, RADIUS, 2)
+
+        return textureFrom(pixmap)
+    }
+
+    private fun generateGriffinRider(tier: UnitTier = UnitTier.BRONZE): Texture {
+        val size = 128
+        val center = size / 2
+        val radius = 56
+        val pixmap = Pixmap(size, size, Pixmap.Format.RGBA8888)
+
+        pixmap.setColor(Color(0.12f, 0.09f, 0.05f, 1f))
+        pixmap.fillCircle(center, center, radius)
+
+        pixmap.setColor(Color(0.72f, 0.56f, 0.22f, 1f))
+        pixmap.fillCircle(center, center + 18, 26)
+        pixmap.fillTriangle(center - 12, center + 4, center + 12, center + 4, center, center - 20)
+
+        pixmap.setColor(Color(0.9f, 0.82f, 0.45f, 1f))
+        pixmap.fillTriangle(center - 8, center + 6, center - 40, center - 18, center - 18, center + 18)
+        pixmap.fillTriangle(center + 8, center + 6, center + 40, center - 18, center + 18, center + 18)
+        drawThickLine(pixmap, center - 20, center + 14, center - 40, center - 8, 3)
+        drawThickLine(pixmap, center + 20, center + 14, center + 40, center - 8, 3)
+
+        pixmap.setColor(Color(0.82f, 0.72f, 0.3f, 1f))
+        pixmap.fillCircle(center, center - 10, 16)
+        pixmap.setColor(Color(0.9f, 0.75f, 0.18f, 1f))
+        pixmap.fillTriangle(center, center - 24, center - 6, center - 10, center + 6, center - 10)
+
+        pixmap.setColor(Color(0.28f, 0.38f, 0.7f, 1f))
+        drawThickLine(pixmap, center - 8, center - 8, center + 10, center - 8, 4)
+        drawThickLine(pixmap, center + 6, center - 8, center + 20, center + 16, 3)
+        pixmap.setColor(Color(0.8f, 0.85f, 0.95f, 1f))
+        pixmap.fillCircle(center - 4, center - 12, 5)
+
+        pixmap.setColor(tierRingColor(tier, Color(0.95f, 0.74f, 0.2f, 1f)))
+        drawCircleOutline(pixmap, center, center, radius, 3)
+
+        return textureFrom(pixmap)
     }
 
     // ─── Drawing Helpers ────────────────────────────────────────────────────────
@@ -708,7 +856,7 @@ object SpriteGenerator {
                 val angle = 2.0 * Math.PI * i / steps
                 val x = cx + (r * Math.cos(angle)).toInt()
                 val y = cy + (r * Math.sin(angle)).toInt()
-                if (x in 0 until SIZE && y in 0 until SIZE) {
+                if (x in 0 until pixmap.width && y in 0 until pixmap.height) {
                     pixmap.drawPixel(x, y)
                 }
             }
@@ -721,10 +869,10 @@ object SpriteGenerator {
             val angle = -Math.PI / 2 + Math.PI * i / steps  // -90° to +90° (left-facing arc)
             val x = cx - (bowRadius * Math.cos(angle)).toInt()
             val y = cy + (bowRadius * Math.sin(angle)).toInt()
-            if (x in 0 until SIZE && y in 0 until SIZE) {
+            if (x in 0 until pixmap.width && y in 0 until pixmap.height) {
                 pixmap.drawPixel(x, y)
-                if (x + 1 < SIZE) pixmap.drawPixel(x + 1, y)
-                if (y + 1 < SIZE) pixmap.drawPixel(x, y + 1)
+                if (x + 1 < pixmap.width) pixmap.drawPixel(x + 1, y)
+                if (y + 1 < pixmap.height) pixmap.drawPixel(x, y + 1)
             }
         }
     }
@@ -740,7 +888,7 @@ object SpriteGenerator {
             for (dx in -widthAtY..widthAtY) {
                 val px = cx + dx
                 val py = cy + dy
-                if (px in 0 until SIZE && py in 0 until SIZE) {
+            if (px in 0 until pixmap.width && py in 0 until pixmap.height) {
                     pixmap.drawPixel(px, py)
                 }
             }
@@ -777,5 +925,18 @@ object SpriteGenerator {
             val y = cy + (halfHeight * t)
             pixmap.drawPixel(x.toInt(), y.toInt())
         }
+    }
+
+    private fun textureFrom(pixmap: Pixmap): Texture {
+        val texture = Texture(pixmap)
+        texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
+        pixmap.dispose()
+        return texture
+    }
+
+    private fun tierRingColor(tier: UnitTier, bronzeColor: Color): Color = when (tier) {
+        UnitTier.BRONZE -> bronzeColor
+        UnitTier.SILVER -> Color(0.8f, 0.85f, 0.9f, 1f)
+        UnitTier.GOLD -> Color(1f, 0.85f, 0.1f, 1f)
     }
 }

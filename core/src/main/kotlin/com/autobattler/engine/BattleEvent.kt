@@ -54,6 +54,30 @@ sealed class BattleEvent {
         val position: Position,
         val amount: Int
     ) : BattleEvent()
+
+    /** A single unit caught in a fireball blast. */
+    data class FireballHit(
+        val unitId: Int,
+        val unitName: String,
+        val unitPos: Position,
+        val damage: Int,
+        val hpAfter: Int
+    )
+
+    /**
+     * Wizard fires a fireball aimed at [targetTile].
+     * Every unit whose footprint overlaps the blast area (Chebyshev distance ≤ [radius]
+     * from [targetTile]) is damaged — friend and foe alike.
+     */
+    data class Fireball(
+        val casterId: Int,
+        val casterName: String,
+        val casterPos: Position,
+        val casterType: UnitType,
+        val targetTile: Position,
+        val radius: Int,
+        val hits: List<FireballHit>
+    ) : BattleEvent()
 }
 
 /**
