@@ -1,12 +1,12 @@
-package com.autobattler.model
+﻿package com.autobattler.model
 
 /** Monster archetypes — used by boss/special enemy units. */
 enum class MonsterClass { BEAST, NATURAL_PREDATOR, UNDEAD, HUMANOID_ENEMY, DEMON }
 
 enum class UnitTier(val label: String, val symbol: String) {
     BRONZE("Bronze", ""),
-    SILVER("Silver", "★"),
-    GOLD("Gold", "✦")
+    SILVER("Silver", "(S)"),
+    GOLD("Gold", "(G)")
 }
 
 /**
@@ -111,7 +111,7 @@ sealed class NormalUnitType(
     )
 
     data object MeleeSilver : NormalUnitType(
-        "melee_silver", "Warrior ★", maxHp = 15, power = 5, speed = 3, cooldown = 2,
+        "melee_silver", "Warrior (S)", maxHp = 15, power = 5, speed = 3, cooldown = 2,
         attackRange = 0..1, cost = 100, unlockLevel = 5
     ) {
         override val tier get() = UnitTier.SILVER
@@ -119,7 +119,7 @@ sealed class NormalUnitType(
     }
 
     data object MeleeGold : NormalUnitType(
-        "melee_gold", "Warrior ✦", maxHp = 20, power = 6, speed = 4, cooldown = 2,
+        "melee_gold", "Warrior (G)", maxHp = 20, power = 6, speed = 4, cooldown = 2,
         attackRange = 0..1, cost = 200, unlockLevel = 10
     ) {
         override val tier get() = UnitTier.GOLD
@@ -132,7 +132,7 @@ sealed class NormalUnitType(
     )
 
     data object RangedSilver : NormalUnitType(
-        "ranged_silver", "Archer ★", maxHp = 8, power = 7, speed = 2, cooldown = 3,
+        "ranged_silver", "Archer (S)", maxHp = 8, power = 7, speed = 2, cooldown = 3,
         attackRange = 3..6, cost = 200, unlockLevel = 6
     ) {
         override val tier get() = UnitTier.SILVER
@@ -140,7 +140,7 @@ sealed class NormalUnitType(
     }
 
     data object RangedGold : NormalUnitType(
-        "ranged_gold", "Archer ✦", maxHp = 12, power = 10, speed = 2, cooldown = 3,
+        "ranged_gold", "Archer (G)", maxHp = 12, power = 10, speed = 2, cooldown = 3,
         attackRange = 3..6, cost = 400, unlockLevel = 11
     ) {
         override val tier get() = UnitTier.GOLD
@@ -153,7 +153,7 @@ sealed class NormalUnitType(
     )
 
     data object HealerSilver : NormalUnitType(
-        "healer_silver", "Cleric ★", maxHp = 12, power = 6, speed = 3, cooldown = 2,
+        "healer_silver", "Cleric (S)", maxHp = 12, power = 6, speed = 3, cooldown = 2,
         attackRange = 0..1, cost = 400, unlockLevel = 7
     ) {
         override val tier get() = UnitTier.SILVER
@@ -161,7 +161,7 @@ sealed class NormalUnitType(
     }
 
     data object HealerGold : NormalUnitType(
-        "healer_gold", "Cleric ✦", maxHp = 16, power = 8, speed = 3, cooldown = 2,
+        "healer_gold", "Cleric (G)", maxHp = 16, power = 8, speed = 3, cooldown = 2,
         attackRange = 0..1, cost = 800, unlockLevel = 12
     ) {
         override val tier get() = UnitTier.GOLD
@@ -174,7 +174,7 @@ sealed class NormalUnitType(
     )
 
     data object KnightSilver : NormalUnitType(
-        "knight_silver", "Knight ★", maxHp = 30, power = 15, speed = 5, cooldown = 2,
+        "knight_silver", "Knight (S)", maxHp = 30, power = 15, speed = 5, cooldown = 2,
         attackRange = 0..1, size = 2, cost = 400, unlockLevel = 9
     ) {
         override val tier get() = UnitTier.SILVER
@@ -182,7 +182,7 @@ sealed class NormalUnitType(
     }
 
     data object KnightGold : NormalUnitType(
-        "knight_gold", "Knight ✦", maxHp = 40, power = 20, speed = 6, cooldown = 2,
+        "knight_gold", "Knight (G)", maxHp = 40, power = 20, speed = 6, cooldown = 2,
         attackRange = 0..1, size = 2, cost = 800, unlockLevel = 14
     ) {
         override val tier get() = UnitTier.GOLD
@@ -197,7 +197,7 @@ sealed class NormalUnitType(
     }
 
     data object GriffinRiderSilver : NormalUnitType(
-        "griffin_rider_silver", "Griffin Rider ★", maxHp = 45, power = 22, speed = 8, cooldown = 2,
+        "griffin_rider_silver", "Griffin Rider (S)", maxHp = 45, power = 22, speed = 8, cooldown = 2,
         attackRange = 0..1, size = 2, cost = 1000, unlockLevel = 14
     ) {
         override val tier get() = UnitTier.SILVER
@@ -206,7 +206,7 @@ sealed class NormalUnitType(
     }
 
     data object GriffinRiderGold : NormalUnitType(
-        "griffin_rider_gold", "Griffin Rider ✦", maxHp = 60, power = 30, speed = 9, cooldown = 2,
+        "griffin_rider_gold", "Griffin Rider (G)", maxHp = 60, power = 30, speed = 9, cooldown = 2,
         attackRange = 0..1, size = 2, cost = 2000, unlockLevel = 19
     ) {
         override val tier get() = UnitTier.GOLD
@@ -229,7 +229,7 @@ sealed class SpecialUnitType(
     )
 
     data object FarmerSilver : SpecialUnitType(
-        "farmer_silver", "Farmer ★", maxHp = 2, power = 0, speed = 2, cooldown = 8,
+        "farmer_silver", "Farmer (S)", maxHp = 2, power = 0, speed = 2, cooldown = 8,
         attackRange = 0..0, cost = 200, unlockLevel = 5,
         ability = SpecialAbility.PlantFarm
     ) {
@@ -238,7 +238,7 @@ sealed class SpecialUnitType(
     }
 
     data object FarmerGold : SpecialUnitType(
-        "farmer_gold", "Farmer ✦", maxHp = 3, power = 0, speed = 2, cooldown = 6,
+        "farmer_gold", "Farmer (G)", maxHp = 3, power = 0, speed = 2, cooldown = 6,
         attackRange = 0..0, cost = 400, unlockLevel = 10,
         ability = SpecialAbility.PlantFarm
     ) {
@@ -253,7 +253,7 @@ sealed class SpecialUnitType(
     )
 
     data object WizardSilver : SpecialUnitType(
-        "wizard_silver", "Wizard ★", maxHp = 7, power = 25, speed = 2, cooldown = 5,
+        "wizard_silver", "Wizard (S)", maxHp = 7, power = 25, speed = 2, cooldown = 5,
         attackRange = 3..10, cost = 600, unlockLevel = 11,
         ability = SpecialAbility.Fireball(power = 25, radius = 1)
     ) {
@@ -262,7 +262,7 @@ sealed class SpecialUnitType(
     }
 
     data object WizardGold : SpecialUnitType(
-        "wizard_gold", "Wizard ✦", maxHp = 10, power = 30, speed = 3, cooldown = 4,
+        "wizard_gold", "Wizard (G)", maxHp = 10, power = 30, speed = 3, cooldown = 4,
         attackRange = 3..10, cost = 1200, unlockLevel = 16,
         ability = SpecialAbility.Fireball(power = 30, radius = 1)
     ) {

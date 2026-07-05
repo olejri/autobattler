@@ -1,4 +1,4 @@
-package com.autobattler.screen
+﻿package com.autobattler.screen
 
 import com.autobattler.AutobattlerGame
 import com.autobattler.engine.*
@@ -156,7 +156,7 @@ class BattleScreen(
     private val rosterBarH = 160f
     private val rosterSlotSize = 110f
     private val rosterStartX = gridOffsetX  // left-aligned under the grid
-    private val rosterArrowW = 36f          // width of each ◀/▶ scroll button
+    private val rosterArrowW = 36f          // width of each </> scroll button
     private var rosterScrollOffset = 0      // index of first visible slot
 
     /** How many roster slots fit side-by-side between the two arrows. */
@@ -538,9 +538,9 @@ class BattleScreen(
 
             batch.begin()
             font.color = if (canLeft)  Color.WHITE else Color(0.35f, 0.35f, 0.35f, 1f)
-            font.draw(batch, "◀", barX + 8f, arCY + 8f)
+            font.draw(batch, "<", barX + 8f, arCY + 8f)
             font.color = if (canRight) Color.WHITE else Color(0.35f, 0.35f, 0.35f, 1f)
-            font.draw(batch, "▶", barX + barW - arrowW + 8f, arCY + 8f)
+            font.draw(batch, ">", barX + barW - arrowW + 8f, arCY + 8f)
             batch.end()
         }
 

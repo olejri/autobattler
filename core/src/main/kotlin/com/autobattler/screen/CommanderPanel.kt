@@ -1,4 +1,4 @@
-package com.autobattler.screen
+﻿package com.autobattler.screen
 
 import com.autobattler.model.Commander
 import com.autobattler.model.UnitType
@@ -92,7 +92,7 @@ class CommanderPanel(commander: Commander) : Table() {
             .filter { it.unlockLevel > 1 && it.id !in current.unlockedUnitTypeIds }
             .minByOrNull { it.unlockLevel }
         when {
-            recruitAvail   -> add(Label("★ Recruit available!", skin, "hint")).row()
+            recruitAvail   -> add(Label("(S) Recruit available!", skin, "hint")).row()
             nextLocked != null ->
                 add(Label("Lvl ${nextLocked.unlockLevel}: ${nextLocked.displayName}", skin, "locked")).row()
         }

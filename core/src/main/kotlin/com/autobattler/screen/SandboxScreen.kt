@@ -1,4 +1,4 @@
-package com.autobattler.screen
+﻿package com.autobattler.screen
 
 import com.autobattler.AutobattlerGame
 import com.autobattler.engine.ScenarioDefinition
@@ -382,12 +382,12 @@ class SandboxScreen(private val game: AutobattlerGame) : ScreenAdapter() {
 
         batch.begin()
         font.color = if (paintingPlayerSide) Color.WHITE else Color(0.5f, 0.9f, 0.5f, 1f)
-        font.draw(batch, if (paintingPlayerSide) "▶ PLAYER ZONE" else "PLAYER ZONE", 14f, playerY + btnH - 12f)
+        font.draw(batch, if (paintingPlayerSide) "> PLAYER ZONE" else "PLAYER ZONE", 14f, playerY + btnH - 12f)
         font.color = Color(0.7f, 0.85f, 0.7f, 1f)
         font.draw(batch, "Green side", 14f, playerY + 10f)
 
         font.color = if (!paintingPlayerSide) Color.WHITE else Color(0.9f, 0.5f, 0.5f, 1f)
-        font.draw(batch, if (!paintingPlayerSide) "▶ ENEMY ZONE" else "ENEMY ZONE", 14f, enemyY + btnH - 12f)
+        font.draw(batch, if (!paintingPlayerSide) "> ENEMY ZONE" else "ENEMY ZONE", 14f, enemyY + btnH - 12f)
         font.color = Color(0.85f, 0.7f, 0.7f, 1f)
         font.draw(batch, "Red side", 14f, enemyY + 10f)
 
@@ -472,7 +472,7 @@ class SandboxScreen(private val game: AutobattlerGame) : ScreenAdapter() {
             shapeRenderer.end()
             batch.begin()
             font.color = if (active) Color.WHITE else Color(0.7f, 0.7f, 0.7f, 1f)
-            val label = if (active) "▶ ${tab.label}" else tab.label
+            val label = if (active) "> ${tab.label}" else tab.label
             font.draw(batch, label, 14f, by + btnH - 11f)
             batch.end()
         }
@@ -543,9 +543,9 @@ class SandboxScreen(private val game: AutobattlerGame) : ScreenAdapter() {
 
             batch.begin()
             font.color = if (canUp) Color.WHITE else Color(0.35f, 0.35f, 0.35f, 1f)
-            font.draw(batch, "▲ UP", 6f + arrW / 2f - 14f, arrY + arrH - 6f)
+            font.draw(batch, "UP", 6f + arrW / 2f - 14f, arrY + arrH - 6f)
             font.color = if (canDown) Color.WHITE else Color(0.35f, 0.35f, 0.35f, 1f)
-            font.draw(batch, "▼ DOWN", 6f + arrW + 4f + arrW / 2f - 22f, arrY + arrH - 6f)
+            font.draw(batch, "DOWN", 6f + arrW + 4f + arrW / 2f - 22f, arrY + arrH - 6f)
             batch.end()
         }
     }
@@ -790,7 +790,7 @@ class SandboxScreen(private val game: AutobattlerGame) : ScreenAdapter() {
 
         when (phase) {
             SandboxPhase.TERRITORY_EDITOR -> {
-                val nextBtn = TextButton("NEXT: PAINT TILES ▶", skin)
+                val nextBtn = TextButton("NEXT: PAINT TILES >", skin)
                 nextBtn.addListener(object : ClickListener() {
                     override fun clicked(e: InputEvent?, x: Float, y: Float) {
                         phase = SandboxPhase.MAP_EDITOR; rebuildUI()
@@ -801,7 +801,7 @@ class SandboxScreen(private val game: AutobattlerGame) : ScreenAdapter() {
             }
 
             SandboxPhase.MAP_EDITOR -> {
-                val nextBtn = TextButton("NEXT: PLACE UNITS ▶", skin)
+                val nextBtn = TextButton("NEXT: PLACE UNITS >", skin)
                 nextBtn.addListener(object : ClickListener() {
                     override fun clicked(e: InputEvent?, x: Float, y: Float) {
                         phase = SandboxPhase.UNIT_PLACEMENT; rebuildUI()
@@ -809,7 +809,7 @@ class SandboxScreen(private val game: AutobattlerGame) : ScreenAdapter() {
                 })
                 table.add(nextBtn).width(230f).height(52f).pad(8f).row()
 
-                val backTerrBtn = TextButton("◀ EDIT TERRITORY", skin)
+                val backTerrBtn = TextButton("< EDIT TERRITORY", skin)
                 backTerrBtn.addListener(object : ClickListener() {
                     override fun clicked(e: InputEvent?, x: Float, y: Float) {
                         phase = SandboxPhase.TERRITORY_EDITOR; rebuildUI()
@@ -824,14 +824,14 @@ class SandboxScreen(private val game: AutobattlerGame) : ScreenAdapter() {
                 val hasOpponent = allUnitsById.values.any { it.owner == BattleUnit.Owner.ENEMY || it.owner == BattleUnit.Owner.NATURAL }
 
                 if (hasPlayer && hasOpponent) {
-                    val startBtn = TextButton("START BATTLE ▶", skin)
+                    val startBtn = TextButton("START BATTLE >", skin)
                     startBtn.addListener(object : ClickListener() {
                         override fun clicked(e: InputEvent?, x: Float, y: Float) { launchBattle() }
                     })
                     table.add(startBtn).width(200f).height(55f).pad(8f).row()
                 }
 
-                val backMapBtn = TextButton("◀ EDIT MAP", skin)
+                val backMapBtn = TextButton("< EDIT MAP", skin)
                 backMapBtn.addListener(object : ClickListener() {
                     override fun clicked(e: InputEvent?, x: Float, y: Float) {
                         phase = SandboxPhase.MAP_EDITOR; rebuildUI()

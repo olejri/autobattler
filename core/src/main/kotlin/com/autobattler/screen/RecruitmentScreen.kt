@@ -1,4 +1,4 @@
-package com.autobattler.screen
+﻿package com.autobattler.screen
 
 import com.autobattler.AutobattlerGame
 import com.autobattler.model.*
@@ -24,7 +24,7 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport
  * Shows all purchasable units grouped by base type (Warrior / Archer / …),
  * with Bronze / Silver / Gold cards side-by-side.  Each card displays the
  * unit's sprite, stats, strength/weakness summary, and an action button:
- *   ✓  already recruited
+ *   OK  already recruited
  *   🔒  level requirement not met
  *   [RECRUIT Xg]  — spend gold to permanently unlock
  *   (not enough gold)  — dimmed info label
@@ -74,7 +74,7 @@ class RecruitmentScreen(private val game: AutobattlerGame) : ScreenAdapter() {
         val header = Table()
         header.background = skin.newDrawable("white", Color(0.05f, 0.07f, 0.14f, 1f))
         header.pad(12f, 24f, 12f, 24f)
-        header.add(Label("⚔  BARRACKS — RECRUIT TROOPS", skin, "title")).expandX().left()
+        header.add(Label("BARRACKS — RECRUIT TROOPS", skin, "title")).expandX().left()
         header.add(Label("Level ${commander.level}", skin, "levelLabel")).padRight(28f)
         header.add(Label("${commander.gold}g", skin, "goldLabel"))
         root.add(header).fillX().row()
@@ -97,7 +97,7 @@ class RecruitmentScreen(private val game: AutobattlerGame) : ScreenAdapter() {
         val footer = Table()
         footer.background = skin.newDrawable("white", Color(0.04f, 0.04f, 0.08f, 1f))
         footer.pad(10f, 20f, 10f, 20f)
-        val backBtn = TextButton("◀  BACK TO CAMP", skin, "back")
+        val backBtn = TextButton("<  BACK TO CAMP", skin, "back")
         backBtn.addListener(object : ClickListener() {
             override fun clicked(e: InputEvent?, x: Float, y: Float) {
                 game.screen = CampaignScreen(game)
@@ -117,7 +117,7 @@ class RecruitmentScreen(private val game: AutobattlerGame) : ScreenAdapter() {
 
         // Intro hint
         val hint = Label(
-            "Each unit has three tiers: Bronze (base), Silver ★ (+upgrades), and Gold ✦ (elite).\n" +
+            "Each unit has three tiers: Bronze (base), Silver (S) (+upgrades), and Gold (G) (elite).\n" +
             "Recruiting adds the unit permanently to your roster — then pay the deploy cost each battle.",
             skin, "hint"
         )
@@ -190,11 +190,11 @@ class RecruitmentScreen(private val game: AutobattlerGame) : ScreenAdapter() {
         strip.pad(5f, 10f, 5f, 10f)
         val tierText = when (type.tier) {
             UnitTier.BRONZE -> "BRONZE"
-            UnitTier.SILVER -> "★  SILVER"
-            UnitTier.GOLD   -> "✦  GOLD"
+            UnitTier.SILVER -> "(S)  SILVER"
+            UnitTier.GOLD   -> "(G)  GOLD"
         }
         strip.add(Label(tierText, skin, "tierStrip")).expandX().left()
-        if (isUnlocked) strip.add(Label("✓", skin, "recruitedCheck")).right()
+        if (isUnlocked) strip.add(Label("OK", skin, "recruitedCheck")).right()
         inner.add(strip).fillX().row()
 
         // ── Icon + stats ─────────────────────────────────────────────────
@@ -212,7 +212,7 @@ class RecruitmentScreen(private val game: AutobattlerGame) : ScreenAdapter() {
         if (type.size > 1)
             stats.add(Label("Size  ${type.size} tiles", skin, "statSmall")).left().row()
         if (type.canFly)
-            stats.add(Label("✈ Flying", skin, "fly")).left().row()
+            stats.add(Label("~ Flying", skin, "fly")).left().row()
         val ability = (type as? SpecialUnitType)?.ability
         if (ability != null)
             stats.add(Label(abilityLabel(ability), skin, "abilityLabel")).left().row()
@@ -240,7 +240,7 @@ class RecruitmentScreen(private val game: AutobattlerGame) : ScreenAdapter() {
         actionBlock.pad(0f, 8f, 10f, 8f)
         when {
             isUnlocked -> {
-                actionBlock.add(Label("Recruited  ✓", skin, "recruitedLabel")).left()
+                actionBlock.add(Label("Recruited  OK", skin, "recruitedLabel")).left()
             }
             !levelMet -> {
                 actionBlock.add(Label("Need Level ${type.unlockLevel}", skin, "locked")).left()
@@ -339,10 +339,10 @@ class RecruitmentScreen(private val game: AutobattlerGame) : ScreenAdapter() {
     }
 
     private fun abilityLabel(ability: SpecialAbility): String = when (ability) {
-        is SpecialAbility.PlantFarm    -> "⚡ Plants a gold farm"
+        is SpecialAbility.PlantFarm    -> "* Plants a gold farm"
         is SpecialAbility.Fireball     -> "* Fireball ${ability.power} dmg / ${ability.radius*2+1}x${ability.radius*2+1} AoE"
         is SpecialAbility.YieldGold    -> "$ Yields ${ability.goldPerRound}g/round"
-        is SpecialAbility.Flying       -> "✈ Flying"
+        is SpecialAbility.Flying       -> "~ Flying"
     }
 
     // ─── Skin ─────────────────────────────────────────────────────────────────

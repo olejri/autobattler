@@ -1,4 +1,4 @@
-package com.autobattler.screen
+﻿package com.autobattler.screen
 
 import com.autobattler.AutobattlerGame
 import com.autobattler.engine.ScenarioDefinition
@@ -92,7 +92,7 @@ class CampaignScreen(private val game: AutobattlerGame) : ScreenAdapter() {
 
         // Day + world header row
         val headerRow = Table()
-        headerRow.add(Label("☀  Day ${commander.currentDay}", skin, "dayLabel")).padRight(32f)
+        headerRow.add(Label("Day ${commander.currentDay}", skin, "dayLabel")).padRight(32f)
         headerRow.add(Label("WORLD  $selectedWorld", skin, "worldTitle")).padRight(32f)
         // World tab buttons (only show worlds player has reached)
         val maxWorld = commander.currentWorld
@@ -176,10 +176,10 @@ class CampaignScreen(private val game: AutobattlerGame) : ScreenAdapter() {
         inner.center()
 
         val statusMark = when {
-            isCompleted -> "✓"
+            isCompleted -> "OK"
             isLocked    -> "X"
-            isBoss      -> "☠"
-            else        -> "►"
+            isBoss      -> "!"
+            else        -> ">"
         }
         inner.add(Label(statusMark, skin, if (isSelected) "nodeTextBright" else "nodeText"))
             .padTop(6f).row()
@@ -273,7 +273,7 @@ class CampaignScreen(private val game: AutobattlerGame) : ScreenAdapter() {
         // Deploy button
         if (scenario != null && isLocked == false) {
             val isCompleted = commander.hasCompleted(selectedWorld, selectedLevel)
-            val deployLabel = if (isCompleted) "⚔  REPLAY  $selectedWorld-$selectedLevel" else "⚔  DEPLOY"
+            val deployLabel = if (isCompleted) "REPLAY  $selectedWorld-$selectedLevel" else "DEPLOY"
             val deployBtn = TextButton(deployLabel, skin, if (isCompleted) "deployAlt" else "deploy")
             deployBtn.addListener(object : ClickListener() {
                 override fun clicked(event: InputEvent?, x: Float, y: Float) {
@@ -294,7 +294,7 @@ class CampaignScreen(private val game: AutobattlerGame) : ScreenAdapter() {
 
         // Work for Hire (pass day + earn gold, ambush chance) — label shows level-scaled gold
         val laborGold = commander.laborGold
-        val laborBtn = TextButton("⚒  WORK FOR HIRE  +${laborGold}g", skin, "labor")
+        val laborBtn = TextButton("WORK FOR HIRE  +${laborGold}g", skin, "labor")
         laborBtn.addListener(object : ClickListener() {
             override fun clicked(event: InputEvent?, x: Float, y: Float) {
                 doLaborDay(commander)

@@ -1,4 +1,4 @@
-package com.autobattler.engine
+﻿package com.autobattler.engine
 
 import com.autobattler.model.*
 
@@ -118,7 +118,7 @@ object Scenarios {
             goldReward = 200
         )
         5 -> ScenarioDefinition(
-            name = "1-5: The Sleeping Bear  ☠",
+            name = "1-5: The Sleeping Bear  !",
             description = "BOSS BATTLE\nA massive 2×2 bear guards its den.\nIt can't fit through 1-tile gaps — use them!\n\n⚠  Bring everything you have.",
             mapPath = "maps/tutorial_sleeping_bear.json",
             startingGold = 800,
@@ -198,7 +198,7 @@ object Scenarios {
             goldReward = 260
         )
         5 -> ScenarioDefinition(
-            name = "2-5: The Dark Fortress  ☠",
+            name = "2-5: The Dark Fortress  !",
             description = "BOSS BATTLE\nThe dark lord's outer gate — heavily fortified!\nA Troll guards the breach, mages cover the flanks.\n\n⚠  Bring your full force.",
             mapPath = "maps/world2_dark_fortress.json",
             startingGold = 900,
@@ -284,7 +284,7 @@ object Scenarios {
             goldReward = 350
         )
         5 -> ScenarioDefinition(
-            name = "3-5: The Dragon  ☠☠",
+            name = "3-5: The Dragon  !!",
             description = "FINAL BOSS\nAncient and terrible, the Dragon awaits.\nLava rivers and fort walls protect its lair.\nIts guards are the most powerful yet.\n\n⚠⚠  Bring everything — this is the end.",
             mapPath = "maps/world3_dragon_lair.json",
             startingGold = 1200,
@@ -347,7 +347,7 @@ object Scenarios {
         val gold = 80 + commanderLevel * 20
 
         return ScenarioDefinition(
-            name = "⚡ Bandit Ambush!  (Day Raiders — Lv.$commanderLevel)",
+            name = "* Bandit Ambush!  (Day Raiders — Lv.$commanderLevel)",
             description = "Bandits raid your camp while you rest!\nDefend yourself — they attack from multiple sides.\n\n" +
                 "⚠  Survive to keep your labor gold.\n" +
                 (if (commanderLevel >= 3) "• Archers in the treeline!\n" else "") +
