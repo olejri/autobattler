@@ -1,0 +1,28 @@
+{
+  "id": "world3_ruins",
+  "name": "Cursed Ruins",
+  "description": "Ancient ruins infested with undead. Crumbling walls provide cover but also block line of sight.",
+  "width": 16,
+  "height": 16,
+  "tiles": [
+    { "type": "ruins", "x": 2, "y": 2 }, { "type": "ruins", "x": 3, "y": 2 }, { "type": "ruins", "x": 4, "y": 2 },
+    { "type": "ruins", "x": 2, "y": 3 }, { "type": "ruins", "x": 4, "y": 3 },
+    { "type": "ruins", "x": 2, "y": 4 }, { "type": "ruins", "x": 4, "y": 4 },
+    { "type": "ruins", "x": 2, "y": 5 }, { "type": "ruins", "x": 3, "y": 5 }, { "type": "ruins", "x": 4, "y": 5 },
+    { "type": "ruins", "x": 1, "y": 9 }, { "type": "ruins", "x": 2, "y": 9 }, { "type": "ruins", "x": 3, "y": 9 },
+    { "type": "ruins", "x": 1, "y": 10 }, { "type": "ruins", "x": 3, "y": 10 },
+    { "type": "ruins", "x": 1, "y": 11 }, { "type": "ruins", "x": 3, "y": 11 },
+    { "type": "ruins", "x": 1, "y": 12 }, { "type": "ruins", "x": 2, "y": 12 }, { "type": "ruins", "x": 3, "y": 12 },
+    { "type": "ruins", "x": 10, "y": 2 }, { "type": "ruins", "x": 11, "y": 2 }, { "type": "ruins", "x": 12, "y": 2 },
+    { "type": "ruins", "x": 10, "y": 3 }, { "type": "ruins", "x": 12, "y": 3 },
+    { "type": "ruins", "x": 10, "y": 4 }, { "type": "ruins", "x": 12, "y": 4 },
+    { "type": "ruins", "x": 10, "y": 5 }, { "type": "ruins", "x": 11, "y": 5 }, { "type": "ruins", "x": 12, "y": 5 },
+    { "type": "ruins", "x": 11, "y": 9 }, { "type": "ruins", "x": 12, "y": 9 }, { "type": "ruins", "x": 13, "y": 9 },
+    { "type": "ruins", "x": 11, "y": 10 }, { "type": "ruins", "x": 13, "y": 10 },
+    { "type": "ruins", "x": 11, "y": 11 }, { "type": "ruins", "x": 13, "y": 11 },
+    { "type": "ruins", "x": 11, "y": 12 }, { "type": "ruins", "x": 12, "y": 12 }, { "type": "ruins", "x": 13, "y": 12 },
+    { "type": "rock", "x": 6, "y": 6 }, { "type": "rock", "x": 9, "y": 6 },
+    { "type": "rock", "x": 6, "y": 9 }, { "type": "rock", "x": 9, "y": 9 },
+    { "type": "water", "x": 7, "y": 7 }, { "type": "water", "x": 7, "y": 8 }, { "type": "water", "x": 8, "y": 7 }, { "type": "water", "x": 8, "y": 8 }
+  ]
+}

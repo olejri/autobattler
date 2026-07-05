@@ -203,11 +203,18 @@ class SandboxScreen(private val game: AutobattlerGame) : ScreenAdapter() {
     }
 
     private fun getTileColor(tile: TileType, playerSide: Boolean): Color = when (tile) {
-        TileType.GRASS  -> if (playerSide) Color(0.08f, 0.16f, 0.08f, 1f) else Color(0.16f, 0.08f, 0.08f, 1f)
-        TileType.WATER  -> Color(0.08f, 0.15f, 0.35f, 1f)
-        TileType.ROCK   -> Color(0.25f, 0.22f, 0.20f, 1f)
-        TileType.BRIDGE -> Color(0.35f, 0.25f, 0.10f, 1f)
-        TileType.TREE   -> Color(0.05f, 0.12f, 0.05f, 1f)
+        TileType.GRASS         -> if (playerSide) Color(0.08f, 0.16f, 0.08f, 1f) else Color(0.16f, 0.08f, 0.08f, 1f)
+        TileType.WATER         -> Color(0.08f, 0.15f, 0.35f, 1f)
+        TileType.ROCK          -> Color(0.25f, 0.22f, 0.20f, 1f)
+        TileType.BRIDGE        -> Color(0.35f, 0.25f, 0.10f, 1f)
+        TileType.TREE          -> Color(0.05f, 0.12f, 0.05f, 1f)
+        TileType.SAND          -> if (playerSide) Color(0.28f, 0.22f, 0.08f, 1f) else Color(0.32f, 0.2f,  0.06f, 1f)
+        TileType.MUD           -> if (playerSide) Color(0.14f, 0.12f, 0.06f, 1f) else Color(0.18f, 0.1f,  0.04f, 1f)
+        TileType.SHALLOW_WATER -> Color(0.1f,  0.22f, 0.4f,  1f)
+        TileType.FORT          -> Color(0.22f, 0.2f,  0.18f, 1f)
+        TileType.LAVA          -> Color(0.5f,  0.1f,  0.02f, 1f)
+        TileType.ICE           -> if (playerSide) Color(0.18f, 0.32f, 0.52f, 1f) else Color(0.22f, 0.22f, 0.42f, 1f)
+        TileType.RUINS         -> if (playerSide) Color(0.18f, 0.15f, 0.12f, 1f) else Color(0.22f, 0.14f, 0.1f,  1f)
     }
 
     private fun drawTileDetail(tile: TileType, sx: Float, sy: Float) {
@@ -232,6 +239,38 @@ class SandboxScreen(private val game: AutobattlerGame) : ScreenAdapter() {
                 shapeRenderer.rect(sx + cellSize / 2 - 3f, sy + 2f, 6f, cellSize * 0.4f)
                 shapeRenderer.color = Color(0.1f, 0.4f, 0.12f, 1f)
                 shapeRenderer.circle(sx + cellSize / 2, sy + cellSize * 0.65f, cellSize * 0.32f)
+            }
+            TileType.SAND -> {
+                shapeRenderer.color = Color(0.45f, 0.36f, 0.14f, 0.6f)
+                shapeRenderer.rect(sx + 6f, sy + cellSize * 0.35f, cellSize * 0.55f, 2f)
+                shapeRenderer.rect(sx + 10f, sy + cellSize * 0.65f, cellSize * 0.45f, 2f)
+            }
+            TileType.MUD -> {
+                shapeRenderer.color = Color(0.25f, 0.18f, 0.08f, 0.7f)
+                shapeRenderer.circle(sx + cellSize * 0.35f, sy + cellSize * 0.4f, cellSize * 0.18f)
+                shapeRenderer.circle(sx + cellSize * 0.65f, sy + cellSize * 0.6f, cellSize * 0.14f)
+            }
+            TileType.SHALLOW_WATER -> {
+                shapeRenderer.color = Color(0.2f, 0.45f, 0.65f, 0.7f)
+                shapeRenderer.rect(sx + 3f, sy + cellSize / 2 - 1f, cellSize * 0.5f, 2f)
+            }
+            TileType.FORT -> {
+                shapeRenderer.color = Color(0.4f, 0.38f, 0.34f, 1f)
+                shapeRenderer.rect(sx + 3f, sy + cellSize / 2 - 1f, cellSize - 6f, 3f)
+                shapeRenderer.rect(sx + 3f, sy + cellSize * 0.75f - 1f, cellSize - 6f, 3f)
+            }
+            TileType.LAVA -> {
+                shapeRenderer.color = Color(1f, 0.45f, 0.02f, 0.9f)
+                shapeRenderer.circle(sx + cellSize * 0.4f, sy + cellSize * 0.45f, cellSize * 0.22f)
+            }
+            TileType.ICE -> {
+                shapeRenderer.color = Color(0.55f, 0.75f, 0.9f, 0.7f)
+                shapeRenderer.rect(sx + 4f, sy + cellSize * 0.3f, cellSize - 8f, 2f)
+            }
+            TileType.RUINS -> {
+                shapeRenderer.color = Color(0.42f, 0.36f, 0.3f, 0.8f)
+                shapeRenderer.rect(sx + 4f, sy + 4f, cellSize * 0.3f, cellSize * 0.25f)
+                shapeRenderer.rect(sx + cellSize * 0.55f, sy + cellSize * 0.6f, cellSize * 0.35f, cellSize * 0.28f)
             }
             else -> {}
         }

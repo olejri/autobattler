@@ -27,6 +27,7 @@ data class Commander(
     val currentWorld: Int = 1,
     val currentLevel: Int = 1,
     val completedBattleIds: List<String> = emptyList(),
+    val currentDay: Int = 1,
     val saveVersion: Int = 1
 ) {
     /** e.g. "1-3" */
@@ -76,8 +77,49 @@ data class Commander(
             gold = gold - goldSpent + goldEarned,
             completedBattleIds = newCompleted,
             currentWorld = nextWorld,
-            currentLevel = nextLevel
+            currentLevel = nextLevel,
+            currentDay = currentDay + 1
         )
+    }
+
+    /**
+     * Returns a new Commander state after winning a NON-campaign battle (e.g. an ambush).
+     * Awards XP and gold but does NOT advance the world/level tracker or mark any battle complete.
+     *
+     * @param xpReward   XP to award
+     * @param goldEarned Gold earned (kills + bonus)
+     * @param goldSpent  Gold spent buying units
+     */
+    fun afterBattleReward(xpReward: Int, goldEarned: Int, goldSpent: Int = 0): Commander {
+        var lvl = level
+        var remainingXp = xp + xpReward
+        while (remainingXp >= lvl * 100) {
+            remainingXp -= lvl * 100
+            lvl++
+        }
+        return copy(
+            level = lvl,
+            xp = remainingXp,
+            gold = gold - goldSpent + goldEarned
+            // currentDay already advanced in afterLabor — do not advance again here
+        )
+    }
+
+    /**
+     * Returns a new Commander state after spending a day doing labor.
+     * Awards [laborGold] gold (scaled by level) and advances the day by 1.
+     */
+    fun afterLabor(): Commander = copy(
+        gold = gold + laborGold,
+        currentDay = currentDay + 1
+    )
+
+    /** Gold earned from a single labor day, scaled by commander level. */
+    val laborGold: Int get() = level * 100
+
+    companion object {
+        /** Probability (0..100) of a bandit ambush when doing labor. */
+        const val AMBUSH_CHANCE_PCT = 20
     }
 
     /**

@@ -2,7 +2,18 @@
   "maps": [
     "maps/tutorial_river.json",
     "maps/tutorial_high_forest.json",
-    "maps/tutorial_sleeping_bear.json"
+    "maps/tutorial_sleeping_bear.json",
+    "maps/world2_desert.json",
+    "maps/world2_swamp.json",
+    "maps/world2_orc_camp.json",
+    "maps/world2_mountain.json",
+    "maps/world2_dark_fortress.json",
+    "maps/world3_lava.json",
+    "maps/world3_spider_cave.json",
+    "maps/world3_ice.json",
+    "maps/world3_ruins.json",
+    "maps/world3_dragon_lair.json",
+    "maps/ambush_bandit_camp.json"
   ]
 }
 

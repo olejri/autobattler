@@ -1,0 +1,21 @@
+{
+  "id": "world3_dragon_lair",
+  "name": "Dragon's Lair",
+  "description": "The ultimate challenge — the dragon's lair. Lava rivers and dark fortifications surround the beast's throne.",
+  "width": 16,
+  "height": 16,
+  "tiles": [
+    { "type": "lava", "x": 11, "y": 0 }, { "type": "lava", "x": 11, "y": 1 }, { "type": "lava", "x": 11, "y": 2 },
+    { "type": "lava", "x": 11, "y": 4 }, { "type": "lava", "x": 11, "y": 5 }, { "type": "lava", "x": 11, "y": 6 },
+    { "type": "lava", "x": 11, "y": 9 }, { "type": "lava", "x": 11, "y": 10 }, { "type": "lava", "x": 11, "y": 11 },
+    { "type": "lava", "x": 11, "y": 13 }, { "type": "lava", "x": 11, "y": 14 }, { "type": "lava", "x": 11, "y": 15 },
+    { "type": "lava", "x": 13, "y": 0 }, { "type": "lava", "x": 13, "y": 1 }, { "type": "lava", "x": 13, "y": 2 }, { "type": "lava", "x": 13, "y": 3 },
+    { "type": "lava", "x": 13, "y": 5 }, { "type": "lava", "x": 13, "y": 6 }, { "type": "lava", "x": 13, "y": 7 }, { "type": "lava", "x": 13, "y": 8 },
+    { "type": "lava", "x": 13, "y": 10 }, { "type": "lava", "x": 13, "y": 11 }, { "type": "lava", "x": 13, "y": 12 }, { "type": "lava", "x": 13, "y": 13 },
+    { "type": "lava", "x": 13, "y": 15 },
+    { "type": "fort", "x": 9, "y": 4 }, { "type": "fort", "x": 9, "y": 5 }, { "type": "fort", "x": 9, "y": 6 },
+    { "type": "fort", "x": 9, "y": 9 }, { "type": "fort", "x": 9, "y": 10 }, { "type": "fort", "x": 9, "y": 11 },
+    { "type": "rock", "x": 3, "y": 4 }, { "type": "rock", "x": 3, "y": 11 },
+    { "type": "rock", "x": 5, "y": 6 }, { "type": "rock", "x": 5, "y": 7 }, { "type": "rock", "x": 5, "y": 8 }, { "type": "rock", "x": 5, "y": 9 }
+  ]
+}

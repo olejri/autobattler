@@ -1,0 +1,26 @@
+{
+  "id": "world2_orc_camp",
+  "name": "Orc Warcamp",
+  "description": "A fortified orc encampment surrounded by crude walls. Choke points force you into brutal close combat.",
+  "width": 16,
+  "height": 16,
+  "tiles": [
+    { "type": "fort", "x": 9, "y": 2 }, { "type": "fort", "x": 10, "y": 2 }, { "type": "fort", "x": 11, "y": 2 }, { "type": "fort", "x": 12, "y": 2 }, { "type": "fort", "x": 13, "y": 2 },
+    { "type": "fort", "x": 9, "y": 3 }, { "type": "fort", "x": 13, "y": 3 },
+    { "type": "fort", "x": 9, "y": 4 }, { "type": "fort", "x": 13, "y": 4 },
+    { "type": "fort", "x": 9, "y": 5 }, { "type": "fort", "x": 13, "y": 5 },
+    { "type": "fort", "x": 9, "y": 6 }, { "type": "fort", "x": 10, "y": 6 },
+    { "type": "fort", "x": 12, "y": 6 }, { "type": "fort", "x": 13, "y": 6 },
+    { "type": "fort", "x": 9, "y": 9 }, { "type": "fort", "x": 10, "y": 9 },
+    { "type": "fort", "x": 12, "y": 9 }, { "type": "fort", "x": 13, "y": 9 },
+    { "type": "fort", "x": 9, "y": 10 }, { "type": "fort", "x": 13, "y": 10 },
+    { "type": "fort", "x": 9, "y": 11 }, { "type": "fort", "x": 13, "y": 11 },
+    { "type": "fort", "x": 9, "y": 12 }, { "type": "fort", "x": 13, "y": 12 },
+    { "type": "fort", "x": 9, "y": 13 }, { "type": "fort", "x": 10, "y": 13 }, { "type": "fort", "x": 11, "y": 13 }, { "type": "fort", "x": 12, "y": 13 }, { "type": "fort", "x": 13, "y": 13 },
+    { "type": "rock", "x": 2, "y": 4 }, { "type": "rock", "x": 3, "y": 4 },
+    { "type": "rock", "x": 2, "y": 11 }, { "type": "rock", "x": 3, "y": 11 },
+    { "type": "rock", "x": 5, "y": 7 }, { "type": "rock", "x": 6, "y": 7 },
+    { "type": "tree", "x": 1, "y": 7 }, { "type": "tree", "x": 1, "y": 8 },
+    { "type": "tree", "x": 5, "y": 13 }, { "type": "tree", "x": 5, "y": 14 }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "id": "world3_lava",
+  "name": "Lava Fields",
+  "description": "A volcanic hellscape. Rivers of lava cut across the field — only narrow land bridges remain passable.",
+  "width": 16,
+  "height": 16,
+  "tiles": [
+    { "type": "lava", "x": 4, "y": 0 }, { "type": "lava", "x": 4, "y": 1 }, { "type": "lava", "x": 4, "y": 2 },
+    { "type": "lava", "x": 4, "y": 4 }, { "type": "lava", "x": 4, "y": 5 }, { "type": "lava", "x": 4, "y": 6 },
+    { "type": "lava", "x": 4, "y": 7 }, { "type": "lava", "x": 4, "y": 8 },
+    { "type": "lava", "x": 4, "y": 10 }, { "type": "lava", "x": 4, "y": 11 }, { "type": "lava", "x": 4, "y": 12 },
+    { "type": "lava", "x": 4, "y": 13 }, { "type": "lava", "x": 4, "y": 14 }, { "type": "lava", "x": 4, "y": 15 },
+    { "type": "lava", "x": 11, "y": 0 }, { "type": "lava", "x": 11, "y": 1 }, { "type": "lava", "x": 11, "y": 2 }, { "type": "lava", "x": 11, "y": 3 },
+    { "type": "lava", "x": 11, "y": 4 },
+    { "type": "lava", "x": 11, "y": 6 }, { "type": "lava", "x": 11, "y": 7 }, { "type": "lava", "x": 11, "y": 8 },
+    { "type": "lava", "x": 11, "y": 9 }, { "type": "lava", "x": 11, "y": 10 },
+    { "type": "lava", "x": 11, "y": 12 }, { "type": "lava", "x": 11, "y": 13 }, { "type": "lava", "x": 11, "y": 14 }, { "type": "lava", "x": 11, "y": 15 },
+    { "type": "rock", "x": 6, "y": 3 }, { "type": "rock", "x": 6, "y": 4 },
+    { "type": "rock", "x": 9, "y": 11 }, { "type": "rock", "x": 9, "y": 12 },
+    { "type": "rock", "x": 2, "y": 7 }, { "type": "rock", "x": 2, "y": 8 },
+    { "type": "rock", "x": 13, "y": 6 }, { "type": "rock", "x": 13, "y": 7 }
+  ]
+}

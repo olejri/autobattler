@@ -302,6 +302,53 @@ class BattleScreen(
                         shapeRenderer.color = Color(0.15f, 0.5f, 0.15f, 1f)
                         shapeRenderer.circle(sx + cellSize / 2 - 3f, sy + cellSize * 0.7f, cellSize * 0.2f)
                     }
+                    TileType.SAND -> {
+                        // Subtle dune ripple lines
+                        shapeRenderer.color = Color(0.45f, 0.36f, 0.14f, 0.6f)
+                        shapeRenderer.rect(sx + 6f, sy + cellSize * 0.35f, cellSize * 0.55f, 2f)
+                        shapeRenderer.rect(sx + 10f, sy + cellSize * 0.65f, cellSize * 0.45f, 2f)
+                    }
+                    TileType.MUD -> {
+                        // Dark splotch
+                        shapeRenderer.color = Color(0.25f, 0.18f, 0.08f, 0.7f)
+                        shapeRenderer.circle(sx + cellSize * 0.35f, sy + cellSize * 0.4f, cellSize * 0.18f)
+                        shapeRenderer.circle(sx + cellSize * 0.65f, sy + cellSize * 0.6f, cellSize * 0.14f)
+                    }
+                    TileType.SHALLOW_WATER -> {
+                        shapeRenderer.color = Color(0.2f, 0.45f, 0.65f, 0.7f)
+                        shapeRenderer.rect(sx + 3f, sy + cellSize / 2 - 1f, cellSize * 0.5f, 2f)
+                        shapeRenderer.rect(sx + 8f, sy + cellSize * 0.65f, cellSize * 0.35f, 2f)
+                    }
+                    TileType.FORT -> {
+                        // Stone brick pattern
+                        shapeRenderer.color = Color(0.4f, 0.38f, 0.34f, 1f)
+                        shapeRenderer.rect(sx + 3f, sy + cellSize / 2 - 1f, cellSize - 6f, 3f)
+                        shapeRenderer.rect(sx + 3f, sy + cellSize * 0.75f - 1f, cellSize - 6f, 3f)
+                        shapeRenderer.color = Color(0.35f, 0.32f, 0.28f, 1f)
+                        shapeRenderer.rect(sx + 3f, sy + cellSize * 0.25f - 1f, cellSize * 0.45f, 3f)
+                        shapeRenderer.rect(sx + cellSize * 0.55f, sy + cellSize * 0.25f - 1f, cellSize * 0.4f, 3f)
+                    }
+                    TileType.LAVA -> {
+                        // Orange glowing lava flow
+                        shapeRenderer.color = Color(1f, 0.45f, 0.02f, 0.9f)
+                        shapeRenderer.circle(sx + cellSize * 0.4f, sy + cellSize * 0.45f, cellSize * 0.22f)
+                        shapeRenderer.color = Color(1f, 0.7f, 0.1f, 0.8f)
+                        shapeRenderer.circle(sx + cellSize * 0.6f, sy + cellSize * 0.6f, cellSize * 0.14f)
+                    }
+                    TileType.ICE -> {
+                        // Icy crystal sheen
+                        shapeRenderer.color = Color(0.55f, 0.75f, 0.9f, 0.7f)
+                        shapeRenderer.rect(sx + 4f, sy + cellSize * 0.3f, cellSize - 8f, 2f)
+                        shapeRenderer.rect(sx + 8f, sy + cellSize * 0.6f, cellSize - 16f, 2f)
+                    }
+                    TileType.RUINS -> {
+                        // Crumbled stone chunks
+                        shapeRenderer.color = Color(0.42f, 0.36f, 0.3f, 0.8f)
+                        shapeRenderer.rect(sx + 4f, sy + 4f, cellSize * 0.3f, cellSize * 0.25f)
+                        shapeRenderer.rect(sx + cellSize * 0.55f, sy + cellSize * 0.6f, cellSize * 0.35f, cellSize * 0.28f)
+                        shapeRenderer.color = Color(0.3f, 0.26f, 0.22f, 0.6f)
+                        shapeRenderer.rect(sx + 4f, sy + cellSize * 0.65f, cellSize * 0.25f, cellSize * 0.2f)
+                    }
                     else -> {}
                 }
             }
@@ -349,11 +396,18 @@ class BattleScreen(
     }
 
     private fun getTileColor(tile: TileType, playerSide: Boolean): Color = when (tile) {
-        TileType.GRASS -> if (playerSide) Color(0.08f, 0.16f, 0.08f, 1f) else Color(0.16f, 0.08f, 0.08f, 1f)
-        TileType.WATER -> Color(0.08f, 0.15f, 0.35f, 1f)
-        TileType.ROCK -> Color(0.25f, 0.22f, 0.2f, 1f)
-        TileType.BRIDGE -> Color(0.35f, 0.25f, 0.1f, 1f)
-        TileType.TREE -> Color(0.05f, 0.12f, 0.05f, 1f)
+        TileType.GRASS         -> if (playerSide) Color(0.08f, 0.16f, 0.08f, 1f) else Color(0.16f, 0.08f, 0.08f, 1f)
+        TileType.WATER         -> Color(0.08f, 0.15f, 0.35f, 1f)
+        TileType.ROCK          -> Color(0.25f, 0.22f, 0.2f,  1f)
+        TileType.BRIDGE        -> Color(0.35f, 0.25f, 0.1f,  1f)
+        TileType.TREE          -> Color(0.05f, 0.12f, 0.05f, 1f)
+        TileType.SAND          -> if (playerSide) Color(0.28f, 0.22f, 0.08f, 1f) else Color(0.32f, 0.2f,  0.06f, 1f)
+        TileType.MUD           -> if (playerSide) Color(0.14f, 0.12f, 0.06f, 1f) else Color(0.18f, 0.1f,  0.04f, 1f)
+        TileType.SHALLOW_WATER -> Color(0.1f,  0.22f, 0.4f,  1f)
+        TileType.FORT          -> Color(0.22f, 0.2f,  0.18f, 1f)
+        TileType.LAVA          -> Color(0.5f,  0.1f,  0.02f, 1f)
+        TileType.ICE           -> if (playerSide) Color(0.18f, 0.32f, 0.52f, 1f) else Color(0.22f, 0.22f, 0.42f, 1f)
+        TileType.RUINS         -> if (playerSide) Color(0.18f, 0.15f, 0.12f, 1f) else Color(0.22f, 0.14f, 0.1f,  1f)
     }
 
     /** True when (x,y) belongs to the player placement zone. Uses custom territory if provided. */
@@ -627,7 +681,11 @@ class BattleScreen(
             if (battleOutcome?.winner == BattleOutcome.Winner.PLAYER && commander != null) {
                 val goldSpent  = initialGold - gold
                 val goldEarned = enemyKillCount * GOLD_PER_KILL + scenario.goldReward + farmGoldEarned
-                updatedCommander = commander.afterVictory(scenario.xpReward, goldEarned, goldSpent)
+                updatedCommander = if (scenario.progressesCampaign) {
+                    commander.afterVictory(scenario.xpReward, goldEarned, goldSpent)
+                } else {
+                    commander.afterBattleReward(scenario.xpReward, goldEarned, goldSpent)
+                }
             }
             rebuildUI()
         }
@@ -666,6 +724,14 @@ class BattleScreen(
                     is NormalUnitType.Ranged  -> { battleEffects.addArrow(ax, ay, tx, ty); SoundGenerator.getArrowShot().play(0.4f) }
                     is MonsterUnitType.Bear   -> { battleEffects.addSlash(tx, ty, event.attackerPos.x > event.targetPos.x); SoundGenerator.getSwordClash().play(0.7f) }
                     is MonsterUnitType.Wolf   -> { battleEffects.addSlash(tx, ty, event.attackerPos.x > event.targetPos.x); SoundGenerator.getSwordClash().play(0.55f) }
+                    is MonsterUnitType.Goblin -> { battleEffects.addSlash(tx, ty, event.attackerPos.x > event.targetPos.x); SoundGenerator.getSwordClash().play(0.4f) }
+                    is MonsterUnitType.Skeleton -> { battleEffects.addSlash(tx, ty, event.attackerPos.x > event.targetPos.x); SoundGenerator.getSwordClash().play(0.5f) }
+                    is MonsterUnitType.DarkMage -> { battleEffects.addArrow(ax, ay, tx, ty); SoundGenerator.getArrowShot().play(0.55f) }
+                    is MonsterUnitType.Troll  -> { battleEffects.addSlash(tx, ty, event.attackerPos.x > event.targetPos.x); SoundGenerator.getSwordClash().play(0.8f) }
+                    is MonsterUnitType.Bandit -> { battleEffects.addArrow(ax, ay, tx, ty); SoundGenerator.getArrowShot().play(0.45f) }
+                    is MonsterUnitType.OrcWarrior -> { battleEffects.addSlash(tx, ty, event.attackerPos.x > event.targetPos.x); SoundGenerator.getSwordClash().play(0.6f) }
+                    is MonsterUnitType.Spider -> { battleEffects.addSlash(tx, ty, event.attackerPos.x > event.targetPos.x); SoundGenerator.getSwordClash().play(0.45f) }
+                    is MonsterUnitType.Dragon -> { battleEffects.addSlash(tx, ty, event.attackerPos.x > event.targetPos.x); SoundGenerator.getSwordClash().play(0.9f) }
                     is NormalUnitType.Healer  -> battleEffects.addSlash(tx, ty, false)
                     is SpecialUnitType.Farmer -> {}
                     is StructureUnitType.Farm -> {}

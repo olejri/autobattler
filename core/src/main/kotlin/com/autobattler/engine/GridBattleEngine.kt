@@ -54,13 +54,22 @@ class GridBattleEngine {
                 unit.tickCooldown()
 
                 when (unit.type) {
-                    is NormalUnitType.Melee   -> processMelee(unit, simUnits, grid, events)
-                    is NormalUnitType.Ranged  -> processRanged(unit, simUnits, grid, events)
-                    is NormalUnitType.Healer  -> processHealer(unit, simUnits, grid, events)
-                    is MonsterUnitType.Bear   -> processMelee(unit, simUnits, grid, events)
-                    is MonsterUnitType.Wolf   -> processWolf(unit, simUnits, grid, events)
-                    is SpecialUnitType.Farmer -> processFarmer(unit, simUnits, grid, events)
-                    is StructureUnitType.Farm -> { /* passive structure — no action */ }
+                    is NormalUnitType.Melee    -> processMelee(unit, simUnits, grid, events)
+                    is NormalUnitType.Ranged   -> processRanged(unit, simUnits, grid, events)
+                    is NormalUnitType.Healer   -> processHealer(unit, simUnits, grid, events)
+                    is MonsterUnitType.Bear    -> processMelee(unit, simUnits, grid, events)
+                    is MonsterUnitType.Wolf    -> processWolf(unit, simUnits, grid, events)
+                    // New monster types — route to appropriate behaviour
+                    is MonsterUnitType.Goblin      -> processMelee(unit, simUnits, grid, events)
+                    is MonsterUnitType.Skeleton    -> processMelee(unit, simUnits, grid, events)
+                    is MonsterUnitType.DarkMage    -> processRanged(unit, simUnits, grid, events)
+                    is MonsterUnitType.Troll       -> processMelee(unit, simUnits, grid, events)
+                    is MonsterUnitType.Bandit      -> processRanged(unit, simUnits, grid, events)
+                    is MonsterUnitType.OrcWarrior  -> processMelee(unit, simUnits, grid, events)
+                    is MonsterUnitType.Spider      -> processMelee(unit, simUnits, grid, events)
+                    is MonsterUnitType.Dragon      -> processMelee(unit, simUnits, grid, events)
+                    is SpecialUnitType.Farmer  -> processFarmer(unit, simUnits, grid, events)
+                    is StructureUnitType.Farm  -> { /* passive structure — no action */ }
                 }
             }
 
@@ -80,13 +89,222 @@ class GridBattleEngine {
     // ─── MELEE (also used by Bear) ─────────────────────────────────────────────
 
     private fun processMelee(unit: BattleUnit, allUnits: List<BattleUnit>, grid: BattleGrid, events: MutableList<BattleEvent>) {
-        val target = getPriorityTarget(unit, allUnits) ?: return
-        moveToward(unit, target.position, allUnits, grid, events)
+        // Pick the most REACHABLE enemy rather than just the closest by grid distance.
+        // This lets flanking units go around obstacles to attack from the rear.
+        val target = pickReachableTarget(unit, allUnits, grid) ?: return
+
+        // If not yet adjacent, navigate to the best unoccupied flank position so
+        // allies spread out rather than all queuing onto the same tile.
+        if (!unit.isAdjacentToPosition(target.position)) {
+            val flankPos = pickFlankPosition(unit, target, allUnits, grid)
+            if (flankPos != null) {
+                // Move onto the chosen flank tile (exact destination, not adjacent-to it).
+                moveOnto(unit, flankPos, allUnits, grid, events)
+            } else {
+                // No flank tile available (all occupied / unit boxed in) — fall back.
+                moveToward(unit, target.position, allUnits, grid, events)
+            }
+        }
 
         val distToTarget = unit.distanceToPosition(target.position)
         if (unit.canAct && distToTarget in unit.type.attackRange) {
             performAttack(unit, target, events)
         }
+    }
+
+    /**
+     * Picks the best enemy target for a melee unit, considering actual path reachability.
+     *
+     * Scoring per enemy (lower = better):
+     * 1. Ghost-path distance to the enemy's best flank position (terrain + enemy obstacles;
+     *    allied units treated as transparent so we measure true terrain effort).
+     * 2. +500 if the ghost path's FIRST STEP is blocked by an ally — this means the unit
+     *    would immediately stall in a crowd. Units detour around to a more reachable enemy.
+     *
+     * This naturally routes flanking units (e.g. a warrior on y=8 blocked by rocks) to go
+     * the long way around and attack from behind, rather than waiting indefinitely.
+     */
+    private fun pickReachableTarget(unit: BattleUnit, allUnits: List<BattleUnit>, grid: BattleGrid): BattleUnit? {
+        val enemies = when (unit.owner) {
+            BattleUnit.Owner.NATURAL ->
+                allUnits.filter { it.isAlive && it.owner != BattleUnit.Owner.NATURAL }
+            else ->
+                allUnits.filter { it.isAlive && it.owner != unit.owner && it.owner != BattleUnit.Owner.NATURAL }
+        }
+        val combatTargets = enemies.filter { !it.type.isStructure }
+        if (combatTargets.isEmpty())
+            return enemies.minByOrNull { unit.distanceToPosition(it.position) }
+
+        // If already adjacent to any combat target, attack it immediately.
+        combatTargets.find { unit.isAdjacentToPosition(it.position) }?.let { return it }
+
+        return combatTargets.minByOrNull { enemy ->
+            val flank = pickFlankPosition(unit, enemy, allUnits, grid)
+                ?: return@minByOrNull 0   // already adjacent — score 0 (best)
+            val ghost = findPathOntoIgnoringAllies(unit, flank, allUnits, grid)
+            if (ghost.isEmpty()) return@minByOrNull Int.MAX_VALUE  // completely unreachable
+
+            // Add a heavy penalty if the very first step is blocked by an ally.
+            // This steers the unit away from crowded corridors toward reachable flanks.
+            val firstStep = ghost.first()
+            val firstStepBlocked = allUnits.any {
+                it.isAlive && it.id != unit.id && it.owner == unit.owner &&
+                !it.type.isStructure && it.occupies(firstStep)
+            }
+            ghost.size + if (firstStepBlocked) 500 else 0
+        }
+    }
+
+    /**
+     * Returns the best unoccupied tile adjacent (Chebyshev-1) to [target] for [unit] to
+     * stand on — i.e. the attack position it should navigate to.
+     *
+     * Scoring:
+     * - Huge penalty (1000) for positions already occupied by allies (spread the attack).
+     * - Among unoccupied slots, prefer the one closest (Manhattan) to the unit.
+     *
+     * Returns null if the unit is already adjacent or there are no valid candidates.
+     */
+    private fun pickFlankPosition(unit: BattleUnit, target: BattleUnit, allUnits: List<BattleUnit>, grid: BattleGrid): Position? {
+        if (unit.isAdjacentToPosition(target.position)) return null
+
+        val targetSize = target.size
+        val unitSize   = unit.size
+
+        // All tiles within Chebyshev-1 of any tile in the target's footprint.
+        val candidateSet = mutableSetOf<Position>()
+        for (tx in 0 until targetSize) for (ty in 0 until targetSize) {
+            val tp = Position(target.position.x + tx, target.position.y + ty)
+            for (dx in -1..1) for (dy in -1..1) {
+                if (dx == 0 && dy == 0) continue
+                candidateSet.add(Position(tp.x + dx, tp.y + dy))
+            }
+        }
+        // Exclude the target's own footprint tiles.
+        for (tx in 0 until targetSize) for (ty in 0 until targetSize)
+            candidateSet.remove(Position(target.position.x + tx, target.position.y + ty))
+
+        // Allied positions to avoid crowding.
+        val allyOccupied = allUnits
+            .filter { it.isAlive && it.id != unit.id && it.owner == unit.owner && !it.type.isStructure }
+            .flatMap { it.occupiedTiles() }.toSet()
+
+        fun canFitAt(pos: Position): Boolean = (0 until unitSize).all { dx -> (0 until unitSize).all { dy ->
+            val t = Position(pos.x + dx, pos.y + dy)
+            grid.isInBounds(t) && grid.isPassable(t)
+        }}
+
+        val valid = candidateSet.filter { canFitAt(it) }
+        if (valid.isEmpty()) return null
+
+        return valid.minByOrNull { pos ->
+            val crowdPenalty = if (pos in allyOccupied) 1000 else 0
+            crowdPenalty + unit.position.manhattanDistance(pos)
+        }
+    }
+
+    /**
+     * Move [unit] onto exactly [destination] (not merely adjacent to it).
+     * Uses corridor-patience: if the path is blocked mostly by allies, advance along
+     * the ghost path (ignoring friendlies) and stop when an ally blocks the next step.
+     */
+    private fun moveOnto(unit: BattleUnit, destination: Position, allUnits: List<BattleUnit>, grid: BattleGrid, events: MutableList<BattleEvent>) {
+        if (unit.position == destination) return
+        val path = findPathOnto(unit, destination, allUnits, grid)
+
+        // Corridor patience: compare real path to ghost path (ignoring allies).
+        val ghostPath = findPathOntoIgnoringAllies(unit, destination, allUnits, grid)
+        val detourTooLong = ghostPath.isNotEmpty() && (path.isEmpty() || path.size > ghostPath.size + 4)
+
+        val stepsToTake = when {
+            detourTooLong -> {
+                val steps = mutableListOf<Position>()
+                for (step in ghostPath.take(unit.type.speed)) {
+                    val occ = allUnits.any { it.isAlive && it.id != unit.id && !it.type.isStructure && it.occupies(step) }
+                    if (occ) break
+                    steps.add(step)
+                }
+                steps
+            }
+            path.isEmpty() -> return
+            else -> path.take(unit.type.speed)
+        }
+
+        for (step in stepsToTake) {
+            if (unit.position == destination) break
+            val from = unit.position
+            unit.position = step
+            events.add(BattleEvent.Move(unit.id, unit.displayName, from, step))
+        }
+    }
+
+    /** BFS from [movingUnit] that tries to reach exactly [goal] (unit must fit at goal). */
+    private fun findPathOnto(movingUnit: BattleUnit, goal: Position, allUnits: List<BattleUnit>, grid: BattleGrid): List<Position> {
+        val start    = movingUnit.position
+        val unitSize = movingUnit.size
+        val occupied = mutableSetOf<Position>()
+        for (other in allUnits) {
+            if (!other.isAlive || other.id == movingUnit.id || other.type.isStructure) continue
+            occupied.addAll(other.occupiedTiles())
+        }
+
+        fun canFitAt(pos: Position): Boolean = (0 until unitSize).all { dx -> (0 until unitSize).all { dy ->
+            val t = Position(pos.x + dx, pos.y + dy)
+            grid.isInBounds(t) && grid.isPassable(t) && t !in occupied
+        }}
+
+        if (goal == start) return emptyList()
+        if (!canFitAt(goal)) return emptyList()
+
+        val visited  = mutableSetOf(start)
+        val queue    = ArrayDeque<Position>()
+        val cameFrom = mutableMapOf<Position, Position>()
+        queue.add(start)
+
+        while (queue.isNotEmpty()) {
+            val current = queue.removeFirst()
+            if (current == goal) return reconstructPath(cameFrom, start, current)
+            for (nb in getCardinalNeighbors(current)) {
+                if (nb in visited || !canFitAt(nb)) continue
+                visited.add(nb); cameFrom[nb] = current; queue.add(nb)
+            }
+        }
+        return emptyList()
+    }
+
+    /** Same as [findPathOnto] but treats friendly units as transparent (terrain + enemies only). */
+    private fun findPathOntoIgnoringAllies(movingUnit: BattleUnit, goal: Position, allUnits: List<BattleUnit>, grid: BattleGrid): List<Position> {
+        val start    = movingUnit.position
+        val unitSize = movingUnit.size
+        val enemyOcc = mutableSetOf<Position>()
+        for (other in allUnits) {
+            if (!other.isAlive || other.id == movingUnit.id || other.type.isStructure) continue
+            if (other.owner == movingUnit.owner) continue  // skip allies
+            enemyOcc.addAll(other.occupiedTiles())
+        }
+
+        fun canFitAt(pos: Position): Boolean = (0 until unitSize).all { dx -> (0 until unitSize).all { dy ->
+            val t = Position(pos.x + dx, pos.y + dy)
+            grid.isInBounds(t) && grid.isPassable(t) && t !in enemyOcc
+        }}
+
+        if (goal == start) return emptyList()
+        if (!canFitAt(goal)) return emptyList()
+
+        val visited  = mutableSetOf(start)
+        val queue    = ArrayDeque<Position>()
+        val cameFrom = mutableMapOf<Position, Position>()
+        queue.add(start)
+
+        while (queue.isNotEmpty()) {
+            val current = queue.removeFirst()
+            if (current == goal) return reconstructPath(cameFrom, start, current)
+            for (nb in getCardinalNeighbors(current)) {
+                if (nb in visited || !canFitAt(nb)) continue
+                visited.add(nb); cameFrom[nb] = current; queue.add(nb)
+            }
+        }
+        return emptyList()
     }
 
     // ─── WOLF ────────────────────────────────────────────────────────────────────
@@ -209,6 +427,27 @@ class GridBattleEngine {
     private fun moveToward(unit: BattleUnit, target: Position, allUnits: List<BattleUnit>, grid: BattleGrid, events: MutableList<BattleEvent>) {
         if (unit.isAdjacentToPosition(target)) return
         val path = findPathToAdjacent(unit, target, allUnits, grid)
+
+        // Corridor patience: avoid huge detours caused by allies blocking the direct path.
+        // Compute a ghost path that ignores friendly units (terrain + enemies only).
+        // If the real path would be more than 4 steps longer than the ghost path,
+        // advance along the ghost path until bumping into an ally — this queues the unit
+        // right behind the frontline fighter instead of running the long way around.
+        val ghostPath = findGhostPath(unit, target, allUnits, grid)
+        val detourTooLong = ghostPath.isNotEmpty() && (path.isEmpty() || path.size > ghostPath.size + 4)
+        if (detourTooLong) {
+            for (step in ghostPath.take(unit.type.speed)) {
+                val occupied = allUnits.any {
+                    it.isAlive && it.id != unit.id && !it.type.isStructure && it.occupies(step)
+                }
+                if (occupied) break  // stop right behind the frontline ally
+                val from = unit.position
+                unit.position = step
+                events.add(BattleEvent.Move(unit.id, unit.displayName, from, step))
+            }
+            return
+        }
+
         if (path.isEmpty()) return
         for (step in path.take(unit.type.speed)) {
             if (unit.isAdjacentToPosition(target)) break
@@ -216,6 +455,56 @@ class GridBattleEngine {
             unit.position = step
             events.add(BattleEvent.Move(unit.id, unit.displayName, from, step))
         }
+    }
+
+    /**
+     * BFS that ignores friendly units as movement obstacles (only terrain and enemies block).
+     * Used to compute the "ideal" direct path for corridor-patience checks.
+     */
+    private fun findGhostPath(movingUnit: BattleUnit, goal: Position, allUnits: List<BattleUnit>, grid: BattleGrid): List<Position> {
+        val start = movingUnit.position
+        val unitSize = movingUnit.size
+        val enemyOccupied = mutableSetOf<Position>()
+        for (other in allUnits) {
+            if (!other.isAlive || other.id == movingUnit.id) continue
+            if (other.type.isStructure) continue
+            if (other.owner == movingUnit.owner) continue  // friendlies are transparent
+            enemyOccupied.addAll(other.occupiedTiles())
+        }
+
+        fun canFitAt(pos: Position): Boolean {
+            for (dx in 0 until unitSize) for (dy in 0 until unitSize) {
+                val tile = Position(pos.x + dx, pos.y + dy)
+                if (!grid.isInBounds(tile) || !grid.isPassable(tile) || tile in enemyOccupied) return false
+            }
+            return true
+        }
+
+        fun isAdjacentFromPos(pos: Position): Boolean {
+            for (dx in 0 until unitSize) for (dy in 0 until unitSize) {
+                if (Position(pos.x + dx, pos.y + dy).isAdjacentTo(goal)) return true
+            }
+            return false
+        }
+
+        if (isAdjacentFromPos(start)) return emptyList()
+
+        val visited = mutableSetOf(start)
+        val queue = ArrayDeque<Position>()
+        val cameFrom = mutableMapOf<Position, Position>()
+        queue.add(start)
+
+        while (queue.isNotEmpty()) {
+            val current = queue.removeFirst()
+            if (isAdjacentFromPos(current)) return reconstructPath(cameFrom, start, current)
+            for (neighbor in getCardinalNeighbors(current)) {
+                if (neighbor in visited || !canFitAt(neighbor)) continue
+                visited.add(neighbor)
+                cameFrom[neighbor] = current
+                queue.add(neighbor)
+            }
+        }
+        return emptyList()
     }
 
     private fun moveAway(unit: BattleUnit, threat: Position, allUnits: List<BattleUnit>, grid: BattleGrid, events: MutableList<BattleEvent>) {

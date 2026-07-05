@@ -1,7 +1,7 @@
 package com.autobattler.model
 
 /** Monster archetypes — used by boss/special enemy units. */
-enum class MonsterClass { BEAST, NATURAL_PREDATOR }
+enum class MonsterClass { BEAST, NATURAL_PREDATOR, UNDEAD, HUMANOID_ENEMY, DEMON }
 
 /**
  * Base type for all units. Shared stats only — no ability or monster fields here.
@@ -37,18 +37,32 @@ sealed class UnitType(
             get() = listOf(NormalUnitType.Melee, NormalUnitType.Ranged, NormalUnitType.Healer, SpecialUnitType.Farmer)
 
         val all: List<UnitType>
-            get() = listOf(NormalUnitType.Melee, NormalUnitType.Ranged, NormalUnitType.Healer,
-                           MonsterUnitType.Bear, MonsterUnitType.Wolf, SpecialUnitType.Farmer, StructureUnitType.Farm)
+            get() = listOf(
+                NormalUnitType.Melee, NormalUnitType.Ranged, NormalUnitType.Healer,
+                MonsterUnitType.Bear, MonsterUnitType.Wolf,
+                MonsterUnitType.Goblin, MonsterUnitType.Skeleton, MonsterUnitType.DarkMage,
+                MonsterUnitType.Troll, MonsterUnitType.Bandit, MonsterUnitType.OrcWarrior,
+                MonsterUnitType.Spider, MonsterUnitType.Dragon,
+                SpecialUnitType.Farmer, StructureUnitType.Farm
+            )
 
         fun fromId(id: String): UnitType = when (id) {
-            "melee"  -> NormalUnitType.Melee
-            "ranged" -> NormalUnitType.Ranged
-            "healer" -> NormalUnitType.Healer
-            "bear"   -> MonsterUnitType.Bear
-            "wolf"   -> MonsterUnitType.Wolf
-            "farmer" -> SpecialUnitType.Farmer
-            "farm"   -> StructureUnitType.Farm
-            else     -> throw IllegalArgumentException("Unknown unit type: $id")
+            "melee"       -> NormalUnitType.Melee
+            "ranged"      -> NormalUnitType.Ranged
+            "healer"      -> NormalUnitType.Healer
+            "bear"        -> MonsterUnitType.Bear
+            "wolf"        -> MonsterUnitType.Wolf
+            "goblin"      -> MonsterUnitType.Goblin
+            "skeleton"    -> MonsterUnitType.Skeleton
+            "dark_mage"   -> MonsterUnitType.DarkMage
+            "troll"       -> MonsterUnitType.Troll
+            "bandit"      -> MonsterUnitType.Bandit
+            "orc_warrior" -> MonsterUnitType.OrcWarrior
+            "spider"      -> MonsterUnitType.Spider
+            "dragon"      -> MonsterUnitType.Dragon
+            "farmer"      -> SpecialUnitType.Farmer
+            "farm"        -> StructureUnitType.Farm
+            else          -> throw IllegalArgumentException("Unknown unit type: $id")
         }
     }
 }
@@ -136,5 +150,53 @@ sealed class MonsterUnitType(
     data object Wolf : MonsterUnitType(
         "wolf", "Wolf", maxHp = 15, power = 6, speed = 3, cooldown = 2,
         attackRange = 0..1, size = 1, monsterClass = MonsterClass.NATURAL_PREDATOR
+    )
+
+    /** Fast but fragile melee grunt. World 2 enemy. */
+    data object Goblin : MonsterUnitType(
+        "goblin", "Goblin", maxHp = 6, power = 3, speed = 4, cooldown = 1,
+        attackRange = 0..1, size = 1, monsterClass = MonsterClass.HUMANOID_ENEMY
+    )
+
+    /** Undead warrior — slow but durable. World 2 enemy. */
+    data object Skeleton : MonsterUnitType(
+        "skeleton", "Skeleton", maxHp = 10, power = 4, speed = 2, cooldown = 2,
+        attackRange = 0..1, size = 1, monsterClass = MonsterClass.UNDEAD
+    )
+
+    /** Ranged spellcaster enemy. Hits hard at distance. World 2 enemy. */
+    data object DarkMage : MonsterUnitType(
+        "dark_mage", "Dark Mage", maxHp = 7, power = 7, speed = 1, cooldown = 3,
+        attackRange = 3..7, size = 1, monsterClass = MonsterClass.HUMANOID_ENEMY
+    )
+
+    /** Slow but massive tanky melee brute. World 2 enemy. */
+    data object Troll : MonsterUnitType(
+        "troll", "Troll", maxHp = 30, power = 8, speed = 1, cooldown = 3,
+        attackRange = 0..1, size = 2, monsterClass = MonsterClass.HUMANOID_ENEMY
+    )
+
+    /** Rogue bandit — medium range skirmisher. Appears in ambush events. */
+    data object Bandit : MonsterUnitType(
+        "bandit", "Bandit", maxHp = 8, power = 5, speed = 3, cooldown = 2,
+        attackRange = 1..3, size = 1, monsterClass = MonsterClass.HUMANOID_ENEMY
+    )
+
+    /** Orc heavy infantry — stronger than a Warrior. World 2-3 enemy. */
+    data object OrcWarrior : MonsterUnitType(
+        "orc_warrior", "Orc Warrior", maxHp = 16, power = 6, speed = 2, cooldown = 2,
+        attackRange = 0..1, size = 1, monsterClass = MonsterClass.HUMANOID_ENEMY
+    )
+
+    /** Fast crawling arachnid. Packs a dangerous bite. World 3 enemy. */
+    data object Spider : MonsterUnitType(
+        "spider", "Spider", maxHp = 9, power = 5, speed = 4, cooldown = 2,
+        attackRange = 0..1, size = 1, monsterClass = MonsterClass.BEAST
+    )
+
+    /** Ancient dragon — boss of World 3. Enormous health, devastating power. */
+    data object Dragon : MonsterUnitType(
+        "dragon", "Dragon", maxHp = 80, power = 12, speed = 2, cooldown = 2,
+        attackRange = 0..2, size = 2, monsterClass = MonsterClass.DEMON
     )
 }

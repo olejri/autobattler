@@ -1,0 +1,25 @@
+{
+  "id": "world2_dark_fortress",
+  "name": "Dark Fortress",
+  "description": "The gate of the dark lord's outer fortress. Fort walls create deadly choke points. Breaching this is no small feat.",
+  "width": 16,
+  "height": 16,
+  "tiles": [
+    { "type": "fort", "x": 8, "y": 0 }, { "type": "fort", "x": 8, "y": 1 }, { "type": "fort", "x": 8, "y": 2 }, { "type": "fort", "x": 8, "y": 3 },
+    { "type": "fort", "x": 8, "y": 4 },
+    { "type": "fort", "x": 8, "y": 6 }, { "type": "fort", "x": 8, "y": 7 }, { "type": "fort", "x": 8, "y": 8 },
+    { "type": "fort", "x": 8, "y": 9 },
+    { "type": "fort", "x": 8, "y": 11 }, { "type": "fort", "x": 8, "y": 12 }, { "type": "fort", "x": 8, "y": 13 }, { "type": "fort", "x": 8, "y": 14 }, { "type": "fort", "x": 8, "y": 15 },
+    { "type": "fort", "x": 10, "y": 2 }, { "type": "fort", "x": 10, "y": 3 }, { "type": "fort", "x": 10, "y": 4 }, { "type": "fort", "x": 10, "y": 5 },
+    { "type": "fort", "x": 10, "y": 6 },
+    { "type": "fort", "x": 10, "y": 9 }, { "type": "fort", "x": 10, "y": 10 },
+    { "type": "fort", "x": 10, "y": 11 }, { "type": "fort", "x": 10, "y": 12 }, { "type": "fort", "x": 10, "y": 13 },
+    { "type": "fort", "x": 12, "y": 1 }, { "type": "fort", "x": 12, "y": 2 }, { "type": "fort", "x": 12, "y": 3 },
+    { "type": "fort", "x": 12, "y": 4 }, { "type": "fort", "x": 12, "y": 5 },
+    { "type": "fort", "x": 12, "y": 10 }, { "type": "fort", "x": 12, "y": 11 }, { "type": "fort", "x": 12, "y": 12 },
+    { "type": "fort", "x": 12, "y": 13 }, { "type": "fort", "x": 12, "y": 14 },
+    { "type": "rock", "x": 2, "y": 4 }, { "type": "rock", "x": 3, "y": 4 },
+    { "type": "rock", "x": 2, "y": 11 }, { "type": "rock", "x": 3, "y": 11 },
+    { "type": "rock", "x": 5, "y": 7 }, { "type": "rock", "x": 5, "y": 8 }
+  ]
+}

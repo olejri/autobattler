@@ -61,6 +61,74 @@ enum class TileType(
         passable = false,
         projectilePassable = false,
         placeable = false
+    ),
+
+    /** Sand — passable desert terrain. Slows movement (cost 2). Arrows fly over. */
+    SAND(
+        id = "sand",
+        displayName = "Sand",
+        passable = true,
+        projectilePassable = true,
+        placeable = true,
+        moveCost = 2
+    ),
+
+    /** Mud — swampy ground. Passable but very slow (cost 3). Arrows fly over. */
+    MUD(
+        id = "mud",
+        displayName = "Mud",
+        passable = true,
+        projectilePassable = true,
+        placeable = true,
+        moveCost = 3
+    ),
+
+    /** Shallow water — wading is possible (cost 2) but placement is disallowed. Arrows fly over. */
+    SHALLOW_WATER(
+        id = "shallow_water",
+        displayName = "Shallow Water",
+        passable = true,
+        projectilePassable = true,
+        placeable = false,
+        moveCost = 2
+    ),
+
+    /** Fort wall — impassable defensive structure. Blocks movement AND projectiles. */
+    FORT(
+        id = "fort",
+        displayName = "Fort Wall",
+        passable = false,
+        projectilePassable = false,
+        placeable = false
+    ),
+
+    /** Lava — completely impassable. Arrows can fly over. */
+    LAVA(
+        id = "lava",
+        displayName = "Lava",
+        passable = false,
+        projectilePassable = true,
+        placeable = false
+    ),
+
+    /** Ice — passable but slippery (cost 1, but units can't stop easily — flavour). Arrows fly over. */
+    ICE(
+        id = "ice",
+        displayName = "Ice",
+        passable = true,
+        projectilePassable = true,
+        placeable = true,
+        moveCost = 1
+    ),
+
+    /** Ruins — crumbling stone. Passable (cost 2). Blocks projectiles for cover. */
+    RUINS(
+        id = "ruins",
+        displayName = "Ruins",
+        passable = true,
+        projectilePassable = false,
+        placeable = true,
+        moveCost = 2
     );
 
     companion object {

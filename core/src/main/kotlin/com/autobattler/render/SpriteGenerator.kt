@@ -27,32 +27,49 @@ object SpriteGenerator {
     private var commanderTexture: Texture? = null
     private var farmerTexture: Texture? = null
     private var farmTexture: Texture? = null
+    private var goblinTexture: Texture? = null
+    private var skeletonTexture: Texture? = null
+    private var darkMageTexture: Texture? = null
+    private var trollTexture: Texture? = null
+    private var banditTexture: Texture? = null
+    private var orcWarriorTexture: Texture? = null
+    private var spiderTexture: Texture? = null
+    private var dragonTexture: Texture? = null
 
     fun getTexture(type: UnitType): Texture = when (type) {
-        is NormalUnitType.Melee   -> warriorTexture ?: generateWarrior().also { warriorTexture = it }
-        is NormalUnitType.Ranged  -> archerTexture  ?: generateArcher().also  { archerTexture = it }
-        is NormalUnitType.Healer  -> clericTexture  ?: generateCleric().also  { clericTexture = it }
-        is MonsterUnitType.Bear   -> bearTexture    ?: generateBear().also    { bearTexture = it }
-        is MonsterUnitType.Wolf   -> wolfTexture    ?: generateWolf().also    { wolfTexture = it }
-        is SpecialUnitType.Farmer -> farmerTexture  ?: generateFarmer().also  { farmerTexture = it }
-        is StructureUnitType.Farm -> farmTexture    ?: generateFarm().also    { farmTexture = it }
+        is NormalUnitType.Melee        -> warriorTexture    ?: generateWarrior().also    { warriorTexture = it }
+        is NormalUnitType.Ranged       -> archerTexture     ?: generateArcher().also     { archerTexture = it }
+        is NormalUnitType.Healer       -> clericTexture     ?: generateCleric().also     { clericTexture = it }
+        is MonsterUnitType.Bear        -> bearTexture       ?: generateBear().also       { bearTexture = it }
+        is MonsterUnitType.Wolf        -> wolfTexture       ?: generateWolf().also       { wolfTexture = it }
+        is MonsterUnitType.Goblin      -> goblinTexture     ?: generateGoblin().also     { goblinTexture = it }
+        is MonsterUnitType.Skeleton    -> skeletonTexture   ?: generateSkeleton().also   { skeletonTexture = it }
+        is MonsterUnitType.DarkMage    -> darkMageTexture   ?: generateDarkMage().also   { darkMageTexture = it }
+        is MonsterUnitType.Troll       -> trollTexture      ?: generateTroll().also      { trollTexture = it }
+        is MonsterUnitType.Bandit      -> banditTexture     ?: generateBandit().also     { banditTexture = it }
+        is MonsterUnitType.OrcWarrior  -> orcWarriorTexture ?: generateOrcWarrior().also { orcWarriorTexture = it }
+        is MonsterUnitType.Spider      -> spiderTexture     ?: generateSpider().also     { spiderTexture = it }
+        is MonsterUnitType.Dragon      -> dragonTexture     ?: generateDragon().also     { dragonTexture = it }
+        is SpecialUnitType.Farmer      -> farmerTexture     ?: generateFarmer().also     { farmerTexture = it }
+        is StructureUnitType.Farm      -> farmTexture       ?: generateFarm().also       { farmTexture = it }
     }
 
     fun getCommanderTexture(): Texture =
         commanderTexture ?: generateCommander().also { commanderTexture = it }
 
     fun dispose() {
-        warriorTexture?.dispose()
-        archerTexture?.dispose()
-        clericTexture?.dispose()
-        bearTexture?.dispose()
-        wolfTexture?.dispose()
-        commanderTexture?.dispose()
-        farmerTexture?.dispose()
-        farmTexture?.dispose()
+        warriorTexture?.dispose(); archerTexture?.dispose(); clericTexture?.dispose()
+        bearTexture?.dispose(); wolfTexture?.dispose(); commanderTexture?.dispose()
+        farmerTexture?.dispose(); farmTexture?.dispose()
+        goblinTexture?.dispose(); skeletonTexture?.dispose(); darkMageTexture?.dispose()
+        trollTexture?.dispose(); banditTexture?.dispose(); orcWarriorTexture?.dispose()
+        spiderTexture?.dispose(); dragonTexture?.dispose()
         warriorTexture = null; archerTexture = null; clericTexture = null
         bearTexture = null; wolfTexture = null; commanderTexture = null
         farmerTexture = null; farmTexture = null
+        goblinTexture = null; skeletonTexture = null; darkMageTexture = null
+        trollTexture = null; banditTexture = null; orcWarriorTexture = null
+        spiderTexture = null; dragonTexture = null
     }
 
     // ─── Warrior: Shield + Sword ────────────────────────────────────────────────
@@ -430,6 +447,241 @@ object SpriteGenerator {
         texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
         pixmap.dispose()
         return texture
+    }
+
+    // ─── Drawing Helpers ────────────────────────────────────────────────────────
+
+    private fun generateGoblin(): Texture {
+        val pixmap = Pixmap(SIZE, SIZE, Pixmap.Format.RGBA8888)
+        // Lime-green bg
+        pixmap.setColor(Color(0.05f, 0.15f, 0.05f, 1f))
+        pixmap.fillCircle(CENTER, CENTER, RADIUS)
+        // Goblin head (small, pointy-eared)
+        pixmap.setColor(Color(0.25f, 0.65f, 0.15f, 1f))
+        pixmap.fillCircle(CENTER, CENTER - 2, 14)
+        // Pointy ears
+        pixmap.fillTriangle(CENTER - 14, CENTER - 2, CENTER - 20, CENTER - 12, CENTER - 8, CENTER - 10)
+        pixmap.fillTriangle(CENTER + 14, CENTER - 2, CENTER + 20, CENTER - 12, CENTER + 8, CENTER - 10)
+        // Eyes (yellow, beady)
+        pixmap.setColor(Color(1f, 0.9f, 0f, 1f))
+        pixmap.fillCircle(CENTER - 5, CENTER - 4, 3)
+        pixmap.fillCircle(CENTER + 5, CENTER - 4, 3)
+        pixmap.setColor(Color(0f, 0f, 0f, 1f))
+        pixmap.fillCircle(CENTER - 5, CENTER - 4, 1)
+        pixmap.fillCircle(CENTER + 5, CENTER - 4, 1)
+        // Dagger (small)
+        pixmap.setColor(Color(0.8f, 0.8f, 0.8f, 1f))
+        drawThickLine(pixmap, CENTER, CENTER + 4, CENTER, CENTER + 18, 2)
+        // Ring — acid green
+        pixmap.setColor(Color(0.3f, 0.9f, 0.1f, 1f))
+        drawCircleOutline(pixmap, CENTER, CENTER, RADIUS, 2)
+        val texture = Texture(pixmap); texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear); pixmap.dispose(); return texture
+    }
+
+    private fun generateSkeleton(): Texture {
+        val pixmap = Pixmap(SIZE, SIZE, Pixmap.Format.RGBA8888)
+        // Dark bg
+        pixmap.setColor(Color(0.08f, 0.08f, 0.12f, 1f))
+        pixmap.fillCircle(CENTER, CENTER, RADIUS)
+        // Skull (bone white)
+        pixmap.setColor(Color(0.88f, 0.88f, 0.82f, 1f))
+        pixmap.fillCircle(CENTER, CENTER - 4, 14)
+        // Eye sockets (dark hollows)
+        pixmap.setColor(Color(0.05f, 0.05f, 0.1f, 1f))
+        pixmap.fillCircle(CENTER - 5, CENTER - 6, 4)
+        pixmap.fillCircle(CENTER + 5, CENTER - 6, 4)
+        // Nasal cavity
+        pixmap.fillTriangle(CENTER - 2, CENTER - 1, CENTER + 2, CENTER - 1, CENTER, CENTER + 3)
+        // Jaw/teeth (white lines)
+        pixmap.setColor(Color(0.88f, 0.88f, 0.82f, 1f))
+        drawThickLine(pixmap, CENTER - 8, CENTER + 6, CENTER + 8, CENTER + 6, 2)
+        for (tx in intArrayOf(CENTER - 7, CENTER - 3, CENTER + 1, CENTER + 5)) {
+            drawThickLine(pixmap, tx, CENTER + 6, tx, CENTER + 11, 2)
+        }
+        // Ribcage lines (below)
+        pixmap.setColor(Color(0.7f, 0.7f, 0.65f, 1f))
+        drawThickLine(pixmap, CENTER - 6, CENTER + 14, CENTER + 6, CENTER + 14, 2)
+        drawThickLine(pixmap, CENTER - 6, CENTER + 18, CENTER + 6, CENTER + 18, 2)
+        // Ring — bone white
+        pixmap.setColor(Color(0.75f, 0.75f, 0.7f, 1f))
+        drawCircleOutline(pixmap, CENTER, CENTER, RADIUS, 2)
+        val texture = Texture(pixmap); texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear); pixmap.dispose(); return texture
+    }
+
+    private fun generateDarkMage(): Texture {
+        val pixmap = Pixmap(SIZE, SIZE, Pixmap.Format.RGBA8888)
+        // Deep purple bg
+        pixmap.setColor(Color(0.1f, 0.04f, 0.2f, 1f))
+        pixmap.fillCircle(CENTER, CENTER, RADIUS)
+        // Cloak (dark purple)
+        pixmap.setColor(Color(0.28f, 0.1f, 0.45f, 1f))
+        fillShield(pixmap, CENTER, CENTER + 6, 14, 16)
+        // Hood shadow
+        pixmap.setColor(Color(0.15f, 0.06f, 0.28f, 1f))
+        pixmap.fillCircle(CENTER, CENTER - 4, 13)
+        // Glowing eyes (red)
+        pixmap.setColor(Color(1f, 0.1f, 0.1f, 1f))
+        pixmap.fillCircle(CENTER - 5, CENTER - 5, 3)
+        pixmap.fillCircle(CENTER + 5, CENTER - 5, 3)
+        // Staff (left hand)
+        pixmap.setColor(Color(0.55f, 0.3f, 0.7f, 1f))
+        drawThickLine(pixmap, CENTER - 8, CENTER + 20, CENTER - 4, CENTER - 6, 2)
+        // Orb at staff tip
+        pixmap.setColor(Color(0.8f, 0.2f, 1f, 1f))
+        pixmap.fillCircle(CENTER - 3, CENTER - 8, 4)
+        // Ring — arcane violet
+        pixmap.setColor(Color(0.7f, 0.2f, 1f, 1f))
+        drawCircleOutline(pixmap, CENTER, CENTER, RADIUS, 2)
+        val texture = Texture(pixmap); texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear); pixmap.dispose(); return texture
+    }
+
+    private fun generateTroll(): Texture {
+        val pixmap = Pixmap(SIZE, SIZE, Pixmap.Format.RGBA8888)
+        // Muddy brown bg
+        pixmap.setColor(Color(0.12f, 0.1f, 0.06f, 1f))
+        pixmap.fillCircle(CENTER, CENTER, RADIUS)
+        // Body — bulky grey-green
+        pixmap.setColor(Color(0.35f, 0.4f, 0.2f, 1f))
+        pixmap.fillCircle(CENTER, CENTER + 4, 18)
+        // Head (small on big body)
+        pixmap.setColor(Color(0.4f, 0.45f, 0.22f, 1f))
+        pixmap.fillCircle(CENTER, CENTER - 8, 11)
+        // Small mean eyes
+        pixmap.setColor(Color(0.9f, 0.5f, 0.1f, 1f))
+        pixmap.fillCircle(CENTER - 4, CENTER - 9, 3)
+        pixmap.fillCircle(CENTER + 4, CENTER - 9, 3)
+        pixmap.setColor(Color(0f, 0f, 0f, 1f))
+        pixmap.fillCircle(CENTER - 4, CENTER - 9, 1)
+        pixmap.fillCircle(CENTER + 4, CENTER - 9, 1)
+        // Club
+        pixmap.setColor(Color(0.45f, 0.3f, 0.15f, 1f))
+        drawThickLine(pixmap, CENTER + 8, CENTER + 22, CENTER + 14, CENTER - 4, 5)
+        pixmap.fillCircle(CENTER + 15, CENTER - 6, 7)
+        // Ring — earthy olive
+        pixmap.setColor(Color(0.5f, 0.6f, 0.25f, 1f))
+        drawCircleOutline(pixmap, CENTER, CENTER, RADIUS, 2)
+        val texture = Texture(pixmap); texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear); pixmap.dispose(); return texture
+    }
+
+    private fun generateBandit(): Texture {
+        val pixmap = Pixmap(SIZE, SIZE, Pixmap.Format.RGBA8888)
+        // Dark leather bg
+        pixmap.setColor(Color(0.1f, 0.08f, 0.06f, 1f))
+        pixmap.fillCircle(CENTER, CENTER, RADIUS)
+        // Leather vest (brown)
+        pixmap.setColor(Color(0.45f, 0.28f, 0.12f, 1f))
+        fillShield(pixmap, CENTER, CENTER + 4, 12, 14)
+        // Hood (dark)
+        pixmap.setColor(Color(0.2f, 0.18f, 0.14f, 1f))
+        pixmap.fillCircle(CENTER, CENTER - 5, 13)
+        // Eye slot (white sliver)
+        pixmap.setColor(Color(0.9f, 0.85f, 0.75f, 1f))
+        drawThickLine(pixmap, CENTER - 7, CENTER - 6, CENTER + 7, CENTER - 6, 3)
+        // Dagger (right hand, at angle)
+        pixmap.setColor(Color(0.85f, 0.85f, 0.85f, 1f))
+        drawThickLine(pixmap, CENTER + 6, CENTER + 18, CENTER + 14, CENTER, 2)
+        pixmap.fillTriangle(CENTER + 15, CENTER - 3, CENTER + 12, CENTER + 2, CENTER + 18, CENTER + 2)
+        // Ring — worn copper
+        pixmap.setColor(Color(0.7f, 0.5f, 0.2f, 1f))
+        drawCircleOutline(pixmap, CENTER, CENTER, RADIUS, 2)
+        val texture = Texture(pixmap); texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear); pixmap.dispose(); return texture
+    }
+
+    private fun generateOrcWarrior(): Texture {
+        val pixmap = Pixmap(SIZE, SIZE, Pixmap.Format.RGBA8888)
+        // Deep green bg
+        pixmap.setColor(Color(0.05f, 0.1f, 0.04f, 1f))
+        pixmap.fillCircle(CENTER, CENTER, RADIUS)
+        // Body armour (dark iron)
+        pixmap.setColor(Color(0.22f, 0.22f, 0.24f, 1f))
+        fillShield(pixmap, CENTER, CENTER + 6, 14, 16)
+        // Head (orc green)
+        pixmap.setColor(Color(0.2f, 0.55f, 0.18f, 1f))
+        pixmap.fillCircle(CENTER, CENTER - 5, 13)
+        // Tusks
+        pixmap.setColor(Color(0.92f, 0.88f, 0.78f, 1f))
+        pixmap.fillTriangle(CENTER - 8, CENTER - 1, CENTER - 12, CENTER + 8, CENTER - 4, CENTER + 3)
+        pixmap.fillTriangle(CENTER + 8, CENTER - 1, CENTER + 12, CENTER + 8, CENTER + 4, CENTER + 3)
+        // Eyes (red)
+        pixmap.setColor(Color(1f, 0.2f, 0.1f, 1f))
+        pixmap.fillCircle(CENTER - 4, CENTER - 7, 3)
+        pixmap.fillCircle(CENTER + 4, CENTER - 7, 3)
+        // Battle axe
+        pixmap.setColor(Color(0.6f, 0.6f, 0.65f, 1f))
+        drawThickLine(pixmap, CENTER + 10, CENTER + 22, CENTER + 10, CENTER - 4, 3)
+        pixmap.fillTriangle(CENTER + 10, CENTER - 6, CENTER + 18, CENTER - 2, CENTER + 18, CENTER + 8)
+        // Ring — dark iron
+        pixmap.setColor(Color(0.4f, 0.55f, 0.25f, 1f))
+        drawCircleOutline(pixmap, CENTER, CENTER, RADIUS, 2)
+        val texture = Texture(pixmap); texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear); pixmap.dispose(); return texture
+    }
+
+    private fun generateSpider(): Texture {
+        val pixmap = Pixmap(SIZE, SIZE, Pixmap.Format.RGBA8888)
+        // Almost-black bg
+        pixmap.setColor(Color(0.06f, 0.04f, 0.08f, 1f))
+        pixmap.fillCircle(CENTER, CENTER, RADIUS)
+        // Body — dark abdomen (larger circle, low)
+        pixmap.setColor(Color(0.15f, 0.1f, 0.2f, 1f))
+        pixmap.fillCircle(CENTER, CENTER + 5, 11)
+        // Cephalothorax (smaller circle, high)
+        pixmap.setColor(Color(0.25f, 0.18f, 0.32f, 1f))
+        pixmap.fillCircle(CENTER, CENTER - 4, 8)
+        // Hourglass marking (red)
+        pixmap.setColor(Color(0.9f, 0.1f, 0.1f, 1f))
+        pixmap.fillTriangle(CENTER - 3, CENTER + 4, CENTER + 3, CENTER + 4, CENTER, CENTER + 8)
+        pixmap.fillTriangle(CENTER - 3, CENTER + 13, CENTER + 3, CENTER + 13, CENTER, CENTER + 9)
+        // Eyes (4 pairs, tiny)
+        pixmap.setColor(Color(1f, 0.9f, 0f, 1f))
+        for (ex in intArrayOf(CENTER - 5, CENTER - 2, CENTER + 2, CENTER + 5)) {
+            pixmap.fillCircle(ex, CENTER - 5, 2)
+        }
+        // Legs (8 lines — 4 per side)
+        pixmap.setColor(Color(0.4f, 0.3f, 0.5f, 1f))
+        for (i in 0..3) {
+            val legY = CENTER - 2 + i * 4
+            val spread = (i + 2) * 3
+            drawThickLine(pixmap, CENTER - 9, legY, CENTER - 9 - spread, legY - 5, 1)
+            drawThickLine(pixmap, CENTER + 9, legY, CENTER + 9 + spread, legY - 5, 1)
+        }
+        // Ring — venomous purple
+        pixmap.setColor(Color(0.55f, 0.2f, 0.8f, 1f))
+        drawCircleOutline(pixmap, CENTER, CENTER, RADIUS, 2)
+        val texture = Texture(pixmap); texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear); pixmap.dispose(); return texture
+    }
+
+    private fun generateDragon(): Texture {
+        val pixmap = Pixmap(SIZE, SIZE, Pixmap.Format.RGBA8888)
+        // Infernal red-black bg
+        pixmap.setColor(Color(0.15f, 0.04f, 0.04f, 1f))
+        pixmap.fillCircle(CENTER, CENTER, RADIUS)
+        // Dragon body (large dark red shape)
+        pixmap.setColor(Color(0.55f, 0.12f, 0.08f, 1f))
+        pixmap.fillCircle(CENTER, CENTER + 2, 18)
+        // Head (reptile, pointed snout)
+        pixmap.setColor(Color(0.7f, 0.18f, 0.1f, 1f))
+        pixmap.fillCircle(CENTER, CENTER - 8, 11)
+        pixmap.fillTriangle(CENTER - 6, CENTER - 14, CENTER + 6, CENTER - 14, CENTER, CENTER - 22)
+        // Dragon eyes (glowing amber)
+        pixmap.setColor(Color(1f, 0.75f, 0f, 1f))
+        pixmap.fillCircle(CENTER - 5, CENTER - 10, 4)
+        pixmap.fillCircle(CENTER + 5, CENTER - 10, 4)
+        pixmap.setColor(Color(0f, 0f, 0f, 1f))
+        pixmap.fillCircle(CENTER - 5, CENTER - 10, 2)
+        pixmap.fillCircle(CENTER + 5, CENTER - 10, 2)
+        // Wing hints (dark triangular shapes)
+        pixmap.setColor(Color(0.35f, 0.08f, 0.05f, 1f))
+        pixmap.fillTriangle(CENTER - 14, CENTER - 4, CENTER - 26, CENTER - 18, CENTER - 4, CENTER + 2)
+        pixmap.fillTriangle(CENTER + 14, CENTER - 4, CENTER + 26, CENTER - 18, CENTER + 4, CENTER + 2)
+        // Flame breath (orange-yellow burst)
+        pixmap.setColor(Color(1f, 0.65f, 0.1f, 0.9f))
+        pixmap.fillTriangle(CENTER - 2, CENTER - 20, CENTER + 2, CENTER - 20, CENTER, CENTER - 30)
+        pixmap.setColor(Color(1f, 0.3f, 0f, 0.8f))
+        pixmap.fillCircle(CENTER, CENTER - 24, 3)
+        // Ring — dragon gold
+        pixmap.setColor(Color(1f, 0.6f, 0.1f, 1f))
+        drawCircleOutline(pixmap, CENTER, CENTER, RADIUS, 2)
+        val texture = Texture(pixmap); texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear); pixmap.dispose(); return texture
     }
 
     // ─── Drawing Helpers ────────────────────────────────────────────────────────

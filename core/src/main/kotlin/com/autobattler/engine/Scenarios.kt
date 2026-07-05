@@ -80,7 +80,7 @@ object Scenarios {
             mapPath = "maps/tutorial_river.json",
             startingGold = 450,
             enemyPlacements = listOf(
-                NormalUnitType.Melee to Position(12, 5),
+                NormalUnitType.Melee to Position(12, 6),
                 NormalUnitType.Melee to Position(12, 8),
                 NormalUnitType.Melee to Position(12, 11),
                 NormalUnitType.Ranged to Position(14, 8),
@@ -111,7 +111,7 @@ object Scenarios {
                 NormalUnitType.Melee to Position(12, 5),
                 NormalUnitType.Melee to Position(12, 11),
                 NormalUnitType.Ranged to Position(14, 6),
-                NormalUnitType.Ranged to Position(14, 10),
+                NormalUnitType.Ranged to Position(15, 10),
                 NormalUnitType.Healer to Position(15, 8),
             ),
             xpReward = 120,
@@ -124,8 +124,8 @@ object Scenarios {
             startingGold = 800,
             enemyPlacements = listOf(
                 MonsterUnitType.Bear to Position(11, 7),
-                NormalUnitType.Melee to Position(13, 5),
-                NormalUnitType.Melee to Position(13, 10),
+                NormalUnitType.Melee to Position(13, 6),
+                NormalUnitType.Melee to Position(13, 9),
             ),
             xpReward = 200,
             goldReward = 300   // boss bonus
@@ -133,9 +133,241 @@ object Scenarios {
         else -> null
     }
 
+    // ─── Campaign: World 2 ───────────────────────────────────────────────────────
+
+    fun world2Battle(level: Int): ScenarioDefinition? = when (level) {
+        1 -> ScenarioDefinition(
+            name = "2-1: Desert Outpost",
+            description = "Sun-scorched sands slow everyone down.\nGoblins are fast — don't let them swarm you!\n\n• Sand slows movement (cost 2)",
+            mapPath = "maps/world2_desert.json",
+            startingGold = 500,
+            enemyPlacements = listOf(
+                MonsterUnitType.Goblin to Position(10, 4),
+                MonsterUnitType.Goblin to Position(10, 7),
+                MonsterUnitType.Goblin to Position(10, 10),
+                MonsterUnitType.Goblin to Position(11, 6),
+                MonsterUnitType.OrcWarrior to Position(13, 7),
+            ),
+            xpReward = 90,
+            goldReward = 220
+        )
+        2 -> ScenarioDefinition(
+            name = "2-2: Swamp Crossing",
+            description = "Mud drags at your boots.\nSkeletons don't tire — they'll catch you!\n\nStay on solid ground and hold bridges.",
+            mapPath = "maps/world2_swamp.json",
+            startingGold = 600,
+            enemyPlacements = listOf(
+                MonsterUnitType.Skeleton to Position(10, 5),
+                MonsterUnitType.Skeleton to Position(10, 8),
+                MonsterUnitType.Skeleton to Position(10, 11),
+                MonsterUnitType.Goblin to Position(11, 3),
+                MonsterUnitType.Goblin to Position(11, 12),
+            ),
+            xpReward = 110,
+            goldReward = 220
+        )
+        3 -> ScenarioDefinition(
+            name = "2-3: Orc Warcamp",
+            description = "Fort walls channel you into kill zones.\nBreak through the gate — but watch for archers!\n\nOrc Warriors hit harder than regular troops.",
+            mapPath = "maps/world2_orc_camp.json",
+            startingGold = 700,
+            enemyPlacements = listOf(
+                MonsterUnitType.OrcWarrior to Position(11, 4),
+                MonsterUnitType.OrcWarrior to Position(11, 11),
+                MonsterUnitType.OrcWarrior to Position(12, 7),
+                MonsterUnitType.Goblin to Position(14, 5),
+                MonsterUnitType.Goblin to Position(14, 10),
+                NormalUnitType.Ranged to Position(15, 7),
+            ),
+            xpReward = 130,
+            goldReward = 240
+        )
+        4 -> ScenarioDefinition(
+            name = "2-4: Mountain Pass",
+            description = "Rocky terrain compresses the battlefield.\nTrolls are slow but unstoppable — hit-and-run!\n\nA Dark Mage rains spells from the rear.",
+            mapPath = "maps/world2_mountain.json",
+            startingGold = 800,
+            enemyPlacements = listOf(
+                MonsterUnitType.Troll to Position(11, 6),
+                MonsterUnitType.OrcWarrior to Position(12, 3),
+                MonsterUnitType.OrcWarrior to Position(12, 11),
+                MonsterUnitType.DarkMage to Position(15, 7),
+                MonsterUnitType.Goblin to Position(12, 8),
+            ),
+            xpReward = 150,
+            goldReward = 260
+        )
+        5 -> ScenarioDefinition(
+            name = "2-5: The Dark Fortress  ☠",
+            description = "BOSS BATTLE\nThe dark lord's outer gate — heavily fortified!\nA Troll guards the breach, mages cover the flanks.\n\n⚠  Bring your full force.",
+            mapPath = "maps/world2_dark_fortress.json",
+            startingGold = 900,
+            enemyPlacements = listOf(
+                MonsterUnitType.Troll to Position(11, 7),
+                MonsterUnitType.DarkMage to Position(14, 4),
+                MonsterUnitType.DarkMage to Position(14, 11),
+                MonsterUnitType.OrcWarrior to Position(13, 7),
+                MonsterUnitType.Skeleton to Position(13, 5),
+                MonsterUnitType.Skeleton to Position(13, 10),
+            ),
+            xpReward = 280,
+            goldReward = 400
+        )
+        else -> null
+    }
+
+    // ─── Campaign: World 3 ───────────────────────────────────────────────────────
+
+    fun world3Battle(level: Int): ScenarioDefinition? = when (level) {
+        1 -> ScenarioDefinition(
+            name = "3-1: Lava Fields",
+            description = "Lava rivers split the battlefield into islands.\nOnly narrow land bridges connect them.\n\nOrc Warriors and Skeletons patrol every chokepoint.",
+            mapPath = "maps/world3_lava.json",
+            startingGold = 700,
+            enemyPlacements = listOf(
+                MonsterUnitType.OrcWarrior to Position(12, 3),
+                MonsterUnitType.OrcWarrior to Position(12, 7),
+                MonsterUnitType.OrcWarrior to Position(12, 12),
+                MonsterUnitType.Skeleton to Position(14, 5),
+                MonsterUnitType.Skeleton to Position(14, 10),
+            ),
+            xpReward = 150,
+            goldReward = 280
+        )
+        2 -> ScenarioDefinition(
+            name = "3-2: Spider's Lair",
+            description = "The cave walls close in. Spiders lurk everywhere!\nThey're fast and can squeeze through tight gaps.\n\nWolves have gone feral inside — they attack anyone!",
+            mapPath = "maps/world3_spider_cave.json",
+            startingGold = 700,
+            enemyPlacements = listOf(
+                MonsterUnitType.Spider to Position(10, 2),
+                MonsterUnitType.Spider to Position(11, 5),
+                MonsterUnitType.Spider to Position(10, 8),
+                MonsterUnitType.Spider to Position(11, 11),
+                MonsterUnitType.Spider to Position(10, 14),
+                MonsterUnitType.DarkMage to Position(14, 7),
+            ),
+            xpReward = 170,
+            goldReward = 280
+        )
+        3 -> ScenarioDefinition(
+            name = "3-3: Frozen Tundra",
+            description = "The ice makes footing treacherous.\nSkeletons have adapted to the cold — they don't slow down.\n\nA Troll patrols the central corridor.",
+            mapPath = "maps/world3_ice.json",
+            startingGold = 800,
+            enemyPlacements = listOf(
+                MonsterUnitType.Troll to Position(12, 7),
+                MonsterUnitType.Skeleton to Position(10, 3),
+                MonsterUnitType.Skeleton to Position(10, 12),
+                MonsterUnitType.DarkMage to Position(14, 7),
+                MonsterUnitType.Spider to Position(12, 4),
+                MonsterUnitType.Spider to Position(12, 11),
+            ),
+            xpReward = 190,
+            goldReward = 300
+        )
+        4 -> ScenarioDefinition(
+            name = "3-4: Cursed Ruins",
+            description = "Dark magic permeates these ancient stones.\nDark Mages use the ruined walls for cover.\nSkeletons guard every archway.\n\n⚠  Kill the mages first — their range is deadly.",
+            mapPath = "maps/world3_ruins.json",
+            startingGold = 900,
+            enemyPlacements = listOf(
+                MonsterUnitType.DarkMage to Position(13, 3),
+                MonsterUnitType.DarkMage to Position(13, 12),
+                MonsterUnitType.Skeleton to Position(11, 5),
+                MonsterUnitType.Skeleton to Position(11, 10),
+                MonsterUnitType.OrcWarrior to Position(12, 7),
+                MonsterUnitType.Spider to Position(14, 7),
+                MonsterUnitType.Troll to Position(14, 4),
+            ),
+            xpReward = 220,
+            goldReward = 350
+        )
+        5 -> ScenarioDefinition(
+            name = "3-5: The Dragon  ☠☠",
+            description = "FINAL BOSS\nAncient and terrible, the Dragon awaits.\nLava rivers and fort walls protect its lair.\nIts guards are the most powerful yet.\n\n⚠⚠  Bring everything — this is the end.",
+            mapPath = "maps/world3_dragon_lair.json",
+            startingGold = 1200,
+            enemyPlacements = listOf(
+                MonsterUnitType.Dragon to Position(14, 6),
+                MonsterUnitType.Troll to Position(14, 2),
+                MonsterUnitType.Troll to Position(14, 11),
+                MonsterUnitType.DarkMage to Position(15, 4),
+                MonsterUnitType.DarkMage to Position(15, 10),
+                MonsterUnitType.OrcWarrior to Position(10, 7),
+                MonsterUnitType.Spider to Position(10, 4),
+                MonsterUnitType.Spider to Position(10, 11),
+            ),
+            xpReward = 500,
+            goldReward = 600
+        )
+        else -> null
+    }
+
+    // ─── Ambush ──────────────────────────────────────────────────────────────────
+
+    /**
+     * A surprise bandit raid on the camp, scaled to [commanderLevel].
+     * Triggered with [Commander.AMBUSH_CHANCE_PCT]% probability when the commander does labor.
+     *
+     * [progressesCampaign] is false — winning this battle only awards XP/gold,
+     * it does NOT advance the world/level tracker.
+     */
+    fun ambushBattle(commanderLevel: Int = 1): ScenarioDefinition {
+        // Scale up enemy roster based on commander level
+        val enemies = buildList {
+            // Base bandit squad (always present)
+            add(MonsterUnitType.Bandit to Position(11, 4))
+            add(MonsterUnitType.Bandit to Position(12, 7))
+            add(MonsterUnitType.Bandit to Position(11, 11))
+            add(MonsterUnitType.Goblin to Position(13, 6))
+            add(MonsterUnitType.Goblin to Position(13, 9))
+            // Level 3+: add archers in the trees
+            if (commanderLevel >= 3) {
+                add(NormalUnitType.Ranged to Position(14, 5))
+                add(NormalUnitType.Ranged to Position(14, 10))
+            }
+            // Level 5+: add orc warriors
+            if (commanderLevel >= 5) {
+                add(MonsterUnitType.OrcWarrior to Position(15, 7))
+                add(MonsterUnitType.Bandit to Position(10, 3))
+            }
+            // Level 7+: add a dark mage commanding from the rear
+            if (commanderLevel >= 7) {
+                add(MonsterUnitType.DarkMage to Position(15, 4))
+                add(MonsterUnitType.DarkMage to Position(15, 11))
+            }
+            // Level 10+: a troll leads the raid
+            if (commanderLevel >= 10) {
+                add(MonsterUnitType.Troll to Position(14, 7))
+            }
+        }
+
+        val xp = 40 + commanderLevel * 8
+        val gold = 80 + commanderLevel * 20
+
+        return ScenarioDefinition(
+            name = "⚡ Bandit Ambush!  (Day Raiders — Lv.$commanderLevel)",
+            description = "Bandits raid your camp while you rest!\nDefend yourself — they attack from multiple sides.\n\n" +
+                "⚠  Survive to keep your labor gold.\n" +
+                (if (commanderLevel >= 3) "• Archers in the treeline!\n" else "") +
+                (if (commanderLevel >= 5) "• Orc enforcers spotted!\n" else "") +
+                (if (commanderLevel >= 7) "• A Dark Mage leads them!\n" else "") +
+                (if (commanderLevel >= 10) "• A Troll marches at their head!\n" else ""),
+            mapPath = "maps/ambush_bandit_camp.json",
+            startingGold = 0,
+            enemyPlacements = enemies,
+            xpReward = xp,
+            goldReward = gold,
+            progressesCampaign = false   // does NOT advance world/level tracker
+        )
+    }
+
     /** Returns the ScenarioDefinition for a given campaign world + level, or null if not yet implemented. */
     fun campaignBattle(world: Int, level: Int): ScenarioDefinition? = when (world) {
         1 -> world1Battle(level)
+        2 -> world2Battle(level)
+        3 -> world3Battle(level)
         else -> null
     }
 }
@@ -156,6 +388,12 @@ data class ScenarioDefinition(
     val enemyPlacements: List<Pair<UnitType, Position>>,
     val xpReward: Int = 50,
     val goldReward: Int = 200,
+    /**
+     * If true, winning this battle advances the campaign world/level tracker and marks the
+     * battle as completed. Set false for side-events like ambushes that should only award
+     * XP/gold without changing the campaign progression.
+     */
+    val progressesCampaign: Boolean = true,
     // Sandbox-only: pre-placed units that skip the buy phase entirely
     val playerPlacements: List<Pair<UnitType, Position>>? = null,
     val naturalPlacements: List<Pair<UnitType, Position>>? = null,

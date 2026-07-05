@@ -97,7 +97,68 @@ object BattleLogger {
         sb.appendLine("└───────────────────────────────────────────────────────────────")
         sb.appendLine()
 
-        // ─── Event Log ──────────────────────────────────────────────────────────
+        // ─── Map Layout ─────────────────────────────────────────────────────────
+        sb.appendLine("┌─── MAP LAYOUT (16×16) ────────────────────────────────────────")
+        sb.appendLine("│")
+
+        // ASCII grid — y=15 at top (north), y=0 at bottom (south)
+        // Legend appended after the grid
+        val tileChar: (TileType) -> Char = {
+            when (it) {
+                TileType.GRASS         -> '.'
+                TileType.ROCK          -> '#'
+                TileType.WATER         -> '~'
+                TileType.BRIDGE        -> '='
+                TileType.TREE          -> 'T'
+                TileType.SAND          -> 's'
+                TileType.MUD           -> 'm'
+                TileType.SHALLOW_WATER -> 'w'
+                TileType.FORT          -> 'F'
+                TileType.LAVA          -> 'L'
+                TileType.ICE           -> 'i'
+                TileType.RUINS         -> 'R'
+            }
+        }
+
+        sb.appendLine("│     0 1 2 3 4 5 6 7 8 9 A B C D E F   ← x")
+        sb.appendLine("│    ┌────────────────────────────────┐")
+        for (y in grid.height - 1 downTo 0) {
+            val rowLabel = if (y < 10) "$y " else "$y"
+            sb.append("│  $rowLabel│")
+            for (x in 0 until grid.width) {
+                val tile = grid.getTile(x, y)
+                sb.append(tileChar(tile))
+                sb.append(' ')
+            }
+            sb.appendLine("│")
+        }
+        sb.appendLine("│    └────────────────────────────────┘")
+        sb.appendLine("│    Legend: . grass  # rock  ~ water  = bridge  T tree")
+        sb.appendLine("│            s sand   m mud   w shallow  F fort  L lava  i ice  R ruins")
+        sb.appendLine("│")
+
+        // Non-GRASS tile list (grouped by type, for easy parsing)
+        val nonGrass = mutableMapOf<TileType, MutableList<Position>>()
+        for (x in 0 until grid.width) {
+            for (y in 0 until grid.height) {
+                val t = grid.getTile(x, y)
+                if (t != TileType.GRASS) nonGrass.getOrPut(t) { mutableListOf() }.add(Position(x, y))
+            }
+        }
+        if (nonGrass.isEmpty()) {
+            sb.appendLine("│  (all tiles are GRASS)")
+        } else {
+            sb.appendLine("│  NON-GRASS TILES:")
+            for ((type, positions) in nonGrass.entries.sortedBy { it.key.name }) {
+                val coords = positions.joinToString(" ") { "(${it.x},${it.y})" }
+                sb.appendLine("│    ${type.name.padEnd(14)} $coords")
+            }
+        }
+        sb.appendLine("│")
+        sb.appendLine("└───────────────────────────────────────────────────────────────")
+        sb.appendLine()
+
+
         sb.appendLine("┌─── BATTLE EVENTS ─────────────────────────────────────────────")
         sb.appendLine("│")
 
