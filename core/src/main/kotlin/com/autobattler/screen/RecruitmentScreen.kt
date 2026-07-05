@@ -243,7 +243,7 @@ class RecruitmentScreen(private val game: AutobattlerGame) : ScreenAdapter() {
                 actionBlock.add(Label("Recruited  ✓", skin, "recruitedLabel")).left()
             }
             !levelMet -> {
-                actionBlock.add(Label("🔒  Need Level ${type.unlockLevel}", skin, "locked")).left()
+                actionBlock.add(Label("Need Level ${type.unlockLevel}", skin, "locked")).left()
             }
             canAfford -> {
                 val btn = TextButton("RECRUIT  ${type.unlockCost}g", skin, "recruit")
@@ -340,8 +340,8 @@ class RecruitmentScreen(private val game: AutobattlerGame) : ScreenAdapter() {
 
     private fun abilityLabel(ability: SpecialAbility): String = when (ability) {
         is SpecialAbility.PlantFarm    -> "⚡ Plants a gold farm"
-        is SpecialAbility.Fireball     -> "🔥 Fireball ${ability.power} dmg / ${ability.radius*2+1}×${ability.radius*2+1} AoE"
-        is SpecialAbility.YieldGold    -> "💰 Yields ${ability.goldPerRound}g/round"
+        is SpecialAbility.Fireball     -> "* Fireball ${ability.power} dmg / ${ability.radius*2+1}x${ability.radius*2+1} AoE"
+        is SpecialAbility.YieldGold    -> "$ Yields ${ability.goldPerRound}g/round"
         is SpecialAbility.Flying       -> "✈ Flying"
     }
 

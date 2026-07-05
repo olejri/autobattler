@@ -177,7 +177,7 @@ class CampaignScreen(private val game: AutobattlerGame) : ScreenAdapter() {
 
         val statusMark = when {
             isCompleted -> "✓"
-            isLocked    -> "🔒"
+            isLocked    -> "X"
             isBoss      -> "☠"
             else        -> "►"
         }
@@ -284,7 +284,7 @@ class CampaignScreen(private val game: AutobattlerGame) : ScreenAdapter() {
         }
 
         // Recruit Troops button — opens the full Barracks screen
-        val recruitBtn = TextButton("🛡  RECRUIT TROOPS", skin, "recruit")
+        val recruitBtn = TextButton("+ RECRUIT TROOPS", skin, "recruit")
         recruitBtn.addListener(object : ClickListener() {
             override fun clicked(event: InputEvent?, x: Float, y: Float) {
                 game.screen = RecruitmentScreen(game)

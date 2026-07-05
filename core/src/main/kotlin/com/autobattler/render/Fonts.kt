@@ -45,6 +45,12 @@ object Fonts {
                 this.genMipMaps = false
                 this.shadowOffsetX = 0
                 this.shadowOffsetY = 0
+                // Extend beyond ASCII: include common UI symbols used in the game.
+                // Emojis (U+1F000+) are intentionally excluded — use unicode alternatives instead.
+                this.characters = FreeTypeFontGenerator.DEFAULT_CHARS +
+                    "★✦☀⚔⚒◀▶▲▼✓✈☄☠►⚡×│±°²³" +
+                    "ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝ" +
+                    "àáâãäåæçèéêëìíîïðñòóôõöøùúûüý"
             }
             val font = gen.generateFont(param)
             generated.add(font)
