@@ -1,0 +1,40 @@
+{
+  "id": "tutorial_sleeping_bear",
+  "name": "Tutorial: The Sleeping Bear",
+  "description": "A massive bear guards its cave. Use the trees to kite it — it can't fit through narrow gaps!",
+  "width": 16,
+  "height": 16,
+  "tiles": [
+    { "type": "rock", "x": 10, "y": 5 },
+    { "type": "rock", "x": 11, "y": 5 },
+    { "type": "rock", "x": 12, "y": 5 },
+    { "type": "rock", "x": 13, "y": 5 },
+    { "type": "rock", "x": 14, "y": 5 },
+    { "type": "rock", "x": 14, "y": 6 },
+    { "type": "rock", "x": 14, "y": 7 },
+    { "type": "rock", "x": 14, "y": 8 },
+    { "type": "rock", "x": 14, "y": 9 },
+    { "type": "rock", "x": 14, "y": 10 },
+    { "type": "rock", "x": 13, "y": 10 },
+    { "type": "rock", "x": 12, "y": 10 },
+    { "type": "rock", "x": 11, "y": 10 },
+    { "type": "rock", "x": 10, "y": 10 },
+    { "type": "rock", "x": 10, "y": 9 },
+    { "type": "rock", "x": 10, "y": 6 },
+
+    { "type": "tree", "x": 2, "y": 1 },
+    { "type": "tree", "x": 2, "y": 5 },
+    { "type": "tree", "x": 2, "y": 9 },
+    { "type": "tree", "x": 2, "y": 13 },
+
+    { "type": "tree", "x": 5, "y": 0 },
+    { "type": "tree", "x": 5, "y": 4 },
+    { "type": "tree", "x": 5, "y": 8 },
+    { "type": "tree", "x": 5, "y": 12 },
+
+    { "type": "tree", "x": 8, "y": 1 },
+    { "type": "tree", "x": 8, "y": 5 },
+    { "type": "tree", "x": 8, "y": 9 },
+    { "type": "tree", "x": 8, "y": 13 }
+  ]
+}

@@ -1,0 +1,156 @@
+package com.autobattler.engine
+
+import com.autobattler.model.*
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+
+/**
+ * Writes detailed battle logs to disk for debugging.
+ *
+ * Each battle gets a numbered file in the `battle_logs/` folder:
+ *   battle_logs/battle_1.log
+ *   battle_logs/battle_2.log
+ *   ...
+ *
+ * The log includes:
+ * - Battle metadata (timestamp, map, units)
+ * - Initial unit placements with unique IDs (e.g., ENEMY_WARRIOR_1)
+ * - Every turn with each unit's decision, reasoning, movement, and actions
+ * - Final outcome
+ *
+ * Usage: Call [BattleLogger.log] after simulation with the grid and outcome.
+ */
+object BattleLogger {
+
+    private const val LOG_DIR = "battle_logs"
+    private var battleCounter = 0
+
+    /**
+     * Generate a unique, readable tag for a unit.
+     * Format: OWNER_TYPE_ID  (e.g., ENEMY_WARRIOR_1, PLAYER_ARCHER_3)
+     */
+    fun unitTag(unit: BattleUnit): String {
+        val ownerTag = unit.owner.name
+        val typeTag = unit.type.displayName.uppercase()
+        return "${ownerTag}_${typeTag}_${unit.id}"
+    }
+
+    /**
+     * Log a complete battle with full detail.
+     *
+     * @param grid The grid state BEFORE simulation (initial placements)
+     * @param outcome The battle outcome (events + winner)
+     * @param mapName Optional map name for context
+     * @return The path to the written log file
+     */
+    fun log(grid: BattleGrid, outcome: BattleOutcome, mapName: String = "unknown"): String {
+        battleCounter++
+        val logDir = File(LOG_DIR)
+        if (!logDir.exists()) logDir.mkdirs()
+
+        val timestamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(Date())
+        val fileName = "battle_${timestamp}.log"
+        val file = File(logDir, fileName)
+
+        val sb = StringBuilder()
+        val displayTimestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Date())
+
+        // ─── Header ─────────────────────────────────────────────────────────────
+        sb.appendLine("╔══════════════════════════════════════════════════════════════╗")
+        sb.appendLine("║  BATTLE LOG #$battleCounter")
+        sb.appendLine("║  Timestamp: $displayTimestamp")
+        sb.appendLine("║  Map: $mapName")
+        sb.appendLine("║  Result: ${outcome.winner} in ${outcome.totalTurns} turns")
+        sb.appendLine("╚══════════════════════════════════════════════════════════════╝")
+        sb.appendLine()
+
+        // ─── Initial State ──────────────────────────────────────────────────────
+        sb.appendLine("┌─── INITIAL UNIT PLACEMENTS ───────────────────────────────────")
+        sb.appendLine("│")
+
+        val allUnits = grid.allUnits
+        val playerUnits = allUnits.filter { it.owner == BattleUnit.Owner.PLAYER }
+        val enemyUnits = allUnits.filter { it.owner == BattleUnit.Owner.ENEMY }
+
+        sb.appendLine("│  PLAYER UNITS:")
+        for (unit in playerUnits) {
+            sb.appendLine("│    ${unitTag(unit)} at (${unit.position.x}, ${unit.position.y})")
+            sb.appendLine("│      HP: ${unit.currentHp}/${unit.type.maxHp}  ATK: ${unit.type.power}  SPD: ${unit.type.speed}  CD: ${unit.type.cooldown}  Range: ${unit.type.attackRange}")
+        }
+        sb.appendLine("│")
+        sb.appendLine("│  ENEMY UNITS:")
+        for (unit in enemyUnits) {
+            sb.appendLine("│    ${unitTag(unit)} at (${unit.position.x}, ${unit.position.y})")
+            sb.appendLine("│      HP: ${unit.currentHp}/${unit.type.maxHp}  ATK: ${unit.type.power}  SPD: ${unit.type.speed}  CD: ${unit.type.cooldown}  Range: ${unit.type.attackRange}")
+        }
+        sb.appendLine("│")
+        sb.appendLine("└───────────────────────────────────────────────────────────────")
+        sb.appendLine()
+
+        // ─── Event Log ──────────────────────────────────────────────────────────
+        sb.appendLine("┌─── BATTLE EVENTS ─────────────────────────────────────────────")
+        sb.appendLine("│")
+
+        // Build a unit lookup by ID for resolving names to tags
+        val unitById = allUnits.associateBy { it.id }
+
+        for (event in outcome.events) {
+            when (event) {
+                is BattleEvent.TurnStart -> {
+                    sb.appendLine("│")
+                    sb.appendLine("│  ════════ TURN ${event.turnNumber} ════════")
+                    sb.appendLine("│")
+                }
+                is BattleEvent.Move -> {
+                    val tag = unitById[event.unitId]?.let { unitTag(it) } ?: event.unitName
+                    sb.appendLine("│  [MOVE] $tag: (${event.from.x},${event.from.y}) → (${event.to.x},${event.to.y})")
+                }
+                is BattleEvent.Attack -> {
+                    val attackerTag = unitById[event.attackerId]?.let { unitTag(it) } ?: event.attackerName
+                    val targetTag = unitById[event.targetId]?.let { unitTag(it) } ?: event.targetName
+                    sb.appendLine("│  [ATTACK] $attackerTag → $targetTag | ${event.damage} damage | Target HP: ${event.targetHpAfter}")
+                    sb.appendLine("│           Attacker at (${event.attackerPos.x},${event.attackerPos.y}), Target at (${event.targetPos.x},${event.targetPos.y})")
+                }
+                is BattleEvent.Heal -> {
+                    val healerTag = unitById[event.healerId]?.let { unitTag(it) } ?: event.healerName
+                    val targetTag = unitById[event.targetId]?.let { unitTag(it) } ?: event.targetName
+                    sb.appendLine("│  [HEAL] $healerTag → $targetTag | +${event.amount} HP | Target HP: ${event.targetHpAfter}")
+                }
+                is BattleEvent.Death -> {
+                    val tag = unitById[event.unitId]?.let { unitTag(it) } ?: event.unitName
+                    sb.appendLine("│  [DEATH] ☠ $tag has been eliminated!")
+                }
+            }
+        }
+
+        sb.appendLine("│")
+        sb.appendLine("└───────────────────────────────────────────────────────────────")
+        sb.appendLine()
+
+        // ─── Summary ────────────────────────────────────────────────────────────
+        sb.appendLine("┌─── BATTLE SUMMARY ────────────────────────────────────────────")
+        sb.appendLine("│")
+        sb.appendLine("│  Winner: ${outcome.winner}")
+        sb.appendLine("│  Total Turns: ${outcome.totalTurns}")
+        sb.appendLine("│  Total Events: ${outcome.events.size}")
+
+        val kills = outcome.events.count { it is BattleEvent.Death }
+        val attacks = outcome.events.count { it is BattleEvent.Attack }
+        val heals = outcome.events.count { it is BattleEvent.Heal }
+        val moves = outcome.events.count { it is BattleEvent.Move }
+
+        sb.appendLine("│  Attacks: $attacks | Heals: $heals | Moves: $moves | Deaths: $kills")
+        sb.appendLine("│")
+        sb.appendLine("└───────────────────────────────────────────────────────────────")
+
+        file.writeText(sb.toString())
+        return file.absolutePath
+    }
+
+    /** Reset the battle counter (useful for testing). */
+    fun resetCounter() {
+        battleCounter = 0
+    }
+}
+

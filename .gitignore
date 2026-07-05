@@ -1,0 +1,20 @@
+# IntelliJ / IDE
+.idea/
+*.iml
+
+# Gradle
+.gradle/
+build/
+out/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local config
+local.properties
+
+# Runtime-generated data
+battle_logs/
+save/
+
