@@ -160,6 +160,9 @@ data class ScenarioDefinition(
     val playerPlacements: List<Pair<UnitType, Position>>? = null,
     val naturalPlacements: List<Pair<UnitType, Position>>? = null,
     // Sandbox-only: custom tile layout (applied instead of mapPath when set)
-    val tileOverrides: List<Pair<Position, TileType>>? = null
+    val tileOverrides: List<Pair<Position, TileType>>? = null,
+    // Custom player territory. null = default left/right split (x ≤ PLAYER_ZONE_END).
+    // When set, only cells in this set belong to the player for placement purposes.
+    val playerTerritory: Set<Position>? = null
 )
 

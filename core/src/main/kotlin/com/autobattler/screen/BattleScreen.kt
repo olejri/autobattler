@@ -272,7 +272,7 @@ class BattleScreen(
                 val sx = gridOffsetX + x * cellSize
                 val sy = gridOffsetY + y * cellSize
                 val tile = grid.getTile(x, y)
-                shapeRenderer.color = getTileColor(tile, x)
+                shapeRenderer.color = getTileColor(tile, isPlayerSide(x, y))
                 shapeRenderer.rect(sx, sy, cellSize, cellSize)
 
                 when (tile) {
@@ -308,7 +308,8 @@ class BattleScreen(
         }
 
         // Hover highlight during drag
-        if (isDragging && hoverGridX in 0..BattleGrid.PLAYER_ZONE_END && hoverGridY in 0 until grid.height) {
+        if (isDragging && hoverGridX in 0 until grid.width && hoverGridY in 0 until grid.height
+            && isPlayerSide(hoverGridX, hoverGridY)) {
             val pos = Position(hoverGridX, hoverGridY)
             val canPlace = draggingType != null && grid.getTile(pos).placeable && !grid.isOccupied(pos)
             shapeRenderer.color = if (canPlace) Color(0.3f, 0.7f, 0.3f, 0.5f) else Color(0.7f, 0.2f, 0.2f, 0.4f)
@@ -331,15 +332,34 @@ class BattleScreen(
             val sy = gridOffsetY + y * cellSize
             shapeRenderer.line(gridOffsetX, sy, gridOffsetX + grid.width * cellSize, sy)
         }
+        // Territory border — thick yellow edges where player territory meets enemy territory
+        shapeRenderer.color = Color(0.85f, 0.85f, 0.2f, 0.8f)
+        for (x in 0 until grid.width) {
+            for (y in 0 until grid.height) {
+                if (!isPlayerSide(x, y)) continue
+                val sx = gridOffsetX + x * cellSize
+                val sy = gridOffsetY + y * cellSize
+                if (!isPlayerSide(x + 1, y)) shapeRenderer.line(sx + cellSize, sy, sx + cellSize, sy + cellSize)
+                if (!isPlayerSide(x - 1, y)) shapeRenderer.line(sx, sy, sx, sy + cellSize)
+                if (!isPlayerSide(x, y + 1)) shapeRenderer.line(sx, sy + cellSize, sx + cellSize, sy + cellSize)
+                if (!isPlayerSide(x, y - 1)) shapeRenderer.line(sx, sy, sx + cellSize, sy)
+            }
+        }
         shapeRenderer.end()
     }
 
-    private fun getTileColor(tile: TileType, x: Int): Color = when (tile) {
-        TileType.GRASS -> if (x <= BattleGrid.PLAYER_ZONE_END) Color(0.08f, 0.16f, 0.08f, 1f) else Color(0.16f, 0.08f, 0.08f, 1f)
+    private fun getTileColor(tile: TileType, playerSide: Boolean): Color = when (tile) {
+        TileType.GRASS -> if (playerSide) Color(0.08f, 0.16f, 0.08f, 1f) else Color(0.16f, 0.08f, 0.08f, 1f)
         TileType.WATER -> Color(0.08f, 0.15f, 0.35f, 1f)
         TileType.ROCK -> Color(0.25f, 0.22f, 0.2f, 1f)
         TileType.BRIDGE -> Color(0.35f, 0.25f, 0.1f, 1f)
         TileType.TREE -> Color(0.05f, 0.12f, 0.05f, 1f)
+    }
+
+    /** True when (x,y) belongs to the player placement zone. Uses custom territory if provided. */
+    private fun isPlayerSide(x: Int, y: Int): Boolean {
+        if (x !in 0 until grid.width || y !in 0 until grid.height) return false
+        return scenario.playerTerritory?.contains(Position(x, y)) ?: (x <= BattleGrid.PLAYER_ZONE_END)
     }
 
     // ─── Unit drawing ───────────────────────────────────────────────────────────
@@ -709,7 +729,7 @@ class BattleScreen(
                 // Check placed player unit click → remove + refund
                 val gridX = ((screenX - gridOffsetX) / cellSize).toInt()
                 val gridY = ((worldY - gridOffsetY) / cellSize).toInt()
-                if (gridX in 0..BattleGrid.PLAYER_ZONE_END && gridY in 0 until grid.height) {
+                if (isPlayerSide(gridX, gridY)) {
                     val unit = grid.unitAt(Position(gridX, gridY))
                     if (unit != null && unit.owner == BattleUnit.Owner.PLAYER) {
                         removePlayerUnit(unit)
@@ -739,7 +759,7 @@ class BattleScreen(
             val pos = Position(gridX, gridY)
             val type = draggingType
 
-            if (type != null && gridX in 0..BattleGrid.PLAYER_ZONE_END && gridY in 0 until grid.height
+            if (type != null && isPlayerSide(gridX, gridY)
                 && grid.getTile(pos).placeable && !grid.isOccupied(pos)
             ) {
                 // Place unit and deduct gold

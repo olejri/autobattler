@@ -38,7 +38,7 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport
  */
 class SandboxScreen(private val game: AutobattlerGame) : ScreenAdapter() {
 
-    private enum class SandboxPhase { MAP_EDITOR, UNIT_PLACEMENT }
+    private enum class SandboxPhase { TERRITORY_EDITOR, MAP_EDITOR, UNIT_PLACEMENT }
 
     private enum class PlacementTab(val owner: BattleUnit.Owner, val label: String, val color: Color) {
         PLAYER(BattleUnit.Owner.PLAYER,  "PLAYER",  Color(0.2f,  0.6f,  1f,   1f)),
@@ -63,9 +63,15 @@ class SandboxScreen(private val game: AutobattlerGame) : ScreenAdapter() {
     private val gridOffsetY = 185f
 
     // ─── State ───────────────────────────────────────────────────────────────
-    private var phase       = SandboxPhase.MAP_EDITOR
+    private var phase       = SandboxPhase.TERRITORY_EDITOR
     private var selectedTile = TileType.GRASS
     private var selectedTab  = PlacementTab.PLAYER
+
+    // Territory (per-cell ownership). Initialised to the classic left/right split.
+    private val playerTerritory: MutableSet<Position> = (0 until BattleGrid.ENEMY_ZONE_START)
+        .flatMap { x -> (0 until BattleGrid.GRID_SIZE).map { y -> Position(x, y) } }
+        .toMutableSet()
+    private var paintingPlayerSide = true   // which side the brush paints
 
     // ─── Map editor ──────────────────────────────────────────────────────────
     private var isPainting = false
@@ -108,15 +114,34 @@ class SandboxScreen(private val game: AutobattlerGame) : ScreenAdapter() {
     // ─── Grid ────────────────────────────────────────────────────────────────
 
     private fun drawGrid() {
+        val isTerritory = phase == SandboxPhase.TERRITORY_EDITOR
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
         for (x in 0 until grid.width) {
             for (y in 0 until grid.height) {
-                val sx = gridOffsetX + x * cellSize
-                val sy = gridOffsetY + y * cellSize
-                val tile = grid.getTile(x, y)
-                shapeRenderer.color = getTileColor(tile, x)
-                shapeRenderer.rect(sx, sy, cellSize, cellSize)
-                drawTileDetail(tile, sx, sy)
+                val sx   = gridOffsetX + x * cellSize
+                val sy   = gridOffsetY + y * cellSize
+                val inPlayer = Position(x, y) in playerTerritory
+                if (isTerritory) {
+                    // Territory editor: show only ownership, no tile details
+                    shapeRenderer.color = if (inPlayer) Color(0.06f, 0.18f, 0.06f, 1f) else Color(0.2f, 0.05f, 0.05f, 1f)
+                    shapeRenderer.rect(sx, sy, cellSize, cellSize)
+                } else {
+                    val tile = grid.getTile(x, y)
+                    shapeRenderer.color = getTileColor(tile, inPlayer)
+                    shapeRenderer.rect(sx, sy, cellSize, cellSize)
+                    drawTileDetail(tile, sx, sy)
+                }
+            }
+        }
+
+        // Territory-editor hover brush
+        if (isTerritory && isPainting) {
+            val mx = Gdx.input.x; val my = Gdx.graphics.height - Gdx.input.y
+            val gx = ((mx - gridOffsetX) / cellSize).toInt()
+            val gy = ((my - gridOffsetY) / cellSize).toInt()
+            if (gx in 0 until grid.width && gy in 0 until grid.height) {
+                shapeRenderer.color = Color(1f, 1f, 1f, 0.2f)
+                shapeRenderer.rect(gridOffsetX + gx * cellSize + 1, gridOffsetY + gy * cellSize + 1, cellSize - 2, cellSize - 2)
             }
         }
 
@@ -137,7 +162,7 @@ class SandboxScreen(private val game: AutobattlerGame) : ScreenAdapter() {
             val owner   = selectedTab.owner
             val unitSize = draggingType?.size ?: 1
             val inBounds = hoverGridX in 0 until grid.width && hoverGridY in 0 until grid.height
-            val valid    = inBounds && isValidZone(hoverGridX, owner)
+            val valid    = inBounds && isValidZone(hoverGridX, hoverGridY, owner)
                 && grid.canUnitFitAt(Position(hoverGridX, hoverGridY), unitSize)
                 && grid.getTile(hoverGridX, hoverGridY).placeable
             // Highlight all tiles the unit would occupy
@@ -162,15 +187,23 @@ class SandboxScreen(private val game: AutobattlerGame) : ScreenAdapter() {
             val sy = gridOffsetY + y * cellSize
             shapeRenderer.line(gridOffsetX, sy, gridOffsetX + grid.width * cellSize, sy)
         }
-        // Zone divider
-        val divX = gridOffsetX + BattleGrid.ENEMY_ZONE_START * cellSize
-        shapeRenderer.color = Color(0.8f, 0.8f, 0.2f, 0.7f)
-        shapeRenderer.line(divX, gridOffsetY, divX, gridOffsetY + grid.height * cellSize)
+        // Territory borders — yellow edges where player meets enemy cells
+        shapeRenderer.color = Color(0.85f, 0.85f, 0.2f, 0.85f)
+        for (x in 0 until grid.width) {
+            for (y in 0 until grid.height) {
+                if (Position(x, y) !in playerTerritory) continue
+                val sx = gridOffsetX + x * cellSize; val sy = gridOffsetY + y * cellSize
+                if (Position(x + 1, y) !in playerTerritory) shapeRenderer.line(sx + cellSize, sy, sx + cellSize, sy + cellSize)
+                if (Position(x - 1, y) !in playerTerritory) shapeRenderer.line(sx, sy, sx, sy + cellSize)
+                if (Position(x, y + 1) !in playerTerritory) shapeRenderer.line(sx, sy + cellSize, sx + cellSize, sy + cellSize)
+                if (Position(x, y - 1) !in playerTerritory) shapeRenderer.line(sx, sy, sx + cellSize, sy)
+            }
+        }
         shapeRenderer.end()
     }
 
-    private fun getTileColor(tile: TileType, x: Int): Color = when (tile) {
-        TileType.GRASS  -> if (x < BattleGrid.ENEMY_ZONE_START) Color(0.08f, 0.16f, 0.08f, 1f) else Color(0.16f, 0.08f, 0.08f, 1f)
+    private fun getTileColor(tile: TileType, playerSide: Boolean): Color = when (tile) {
+        TileType.GRASS  -> if (playerSide) Color(0.08f, 0.16f, 0.08f, 1f) else Color(0.16f, 0.08f, 0.08f, 1f)
         TileType.WATER  -> Color(0.08f, 0.15f, 0.35f, 1f)
         TileType.ROCK   -> Color(0.25f, 0.22f, 0.20f, 1f)
         TileType.BRIDGE -> Color(0.35f, 0.25f, 0.10f, 1f)
@@ -264,9 +297,69 @@ class SandboxScreen(private val game: AutobattlerGame) : ScreenAdapter() {
         shapeRenderer.end()
 
         when (phase) {
+            SandboxPhase.TERRITORY_EDITOR -> drawTerritoryPalette(panelW, screenH)
             SandboxPhase.MAP_EDITOR    -> drawTilePalette(panelW, screenH)
             SandboxPhase.UNIT_PLACEMENT -> drawUnitPanel(panelW, screenH)
         }
+    }
+
+    private fun drawTerritoryPalette(panelW: Float, screenH: Float) {
+        batch.begin()
+        font.color = Color(0.9f, 0.9f, 0.5f, 1f)
+        font.draw(batch, "DEFINE TERRITORY", 8f, screenH - 12f)
+        font.color = Color(0.6f, 0.6f, 0.6f, 1f)
+        font.draw(batch, "Click/drag to paint.", 8f, screenH - 30f)
+        batch.end()
+
+        val btnW = panelW - 16f
+        val btnH = 46f
+        val playerY = screenH - 90f
+        val enemyY  = playerY - btnH - 8f
+        val resetY  = enemyY - btnH - 8f
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
+        // Player button
+        shapeRenderer.color = if (paintingPlayerSide) Color(0.15f, 0.5f, 0.15f, 1f) else Color(0.06f, 0.2f, 0.06f, 1f)
+        shapeRenderer.rect(8f, playerY, btnW, btnH)
+        // Enemy button
+        shapeRenderer.color = if (!paintingPlayerSide) Color(0.55f, 0.12f, 0.12f, 1f) else Color(0.22f, 0.06f, 0.06f, 1f)
+        shapeRenderer.rect(8f, enemyY, btnW, btnH)
+        // Reset button
+        shapeRenderer.color = Color(0.18f, 0.18f, 0.22f, 1f)
+        shapeRenderer.rect(8f, resetY, btnW, btnH)
+        shapeRenderer.end()
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line)
+        shapeRenderer.color = if (paintingPlayerSide) Color.WHITE else Color(0.3f, 0.6f, 0.3f, 1f)
+        shapeRenderer.rect(8f, playerY, btnW, btnH)
+        shapeRenderer.color = if (!paintingPlayerSide) Color.WHITE else Color(0.6f, 0.3f, 0.3f, 1f)
+        shapeRenderer.rect(8f, enemyY, btnW, btnH)
+        shapeRenderer.color = Color(0.4f, 0.4f, 0.5f, 1f)
+        shapeRenderer.rect(8f, resetY, btnW, btnH)
+        shapeRenderer.end()
+
+        batch.begin()
+        font.color = if (paintingPlayerSide) Color.WHITE else Color(0.5f, 0.9f, 0.5f, 1f)
+        font.draw(batch, if (paintingPlayerSide) "▶ PLAYER ZONE" else "PLAYER ZONE", 14f, playerY + btnH - 12f)
+        font.color = Color(0.7f, 0.85f, 0.7f, 1f)
+        font.draw(batch, "Green side", 14f, playerY + 10f)
+
+        font.color = if (!paintingPlayerSide) Color.WHITE else Color(0.9f, 0.5f, 0.5f, 1f)
+        font.draw(batch, if (!paintingPlayerSide) "▶ ENEMY ZONE" else "ENEMY ZONE", 14f, enemyY + btnH - 12f)
+        font.color = Color(0.85f, 0.7f, 0.7f, 1f)
+        font.draw(batch, "Red side", 14f, enemyY + 10f)
+
+        font.color = Color(0.7f, 0.7f, 0.75f, 1f)
+        font.draw(batch, "RESET DEFAULT", 14f, resetY + btnH - 12f)
+        font.draw(batch, "Half/Half split", 14f, resetY + 10f)
+        batch.end()
+    }
+
+    private fun territoryButtonBounds(screenH: Float): Triple<Float, Float, Float> {
+        // Returns (playerY, enemyY, resetY)
+        val btnH   = 46f
+        val playerY = screenH - 90f
+        return Triple(playerY, playerY - btnH - 8f, playerY - (btnH + 8f) * 2)
     }
 
     private fun drawTilePalette(panelW: Float, screenH: Float) {
@@ -283,7 +376,7 @@ class SandboxScreen(private val game: AutobattlerGame) : ScreenAdapter() {
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
         for ((i, tile) in tiles.withIndex()) {
             val sy = startY - i * (slotH + 6f)
-            val col = getTileColor(tile, 0)  // use player-side colour for preview
+            val col = getTileColor(tile, true)  // use player-side colour for preview
             shapeRenderer.color = if (tile == selectedTile) Color(col.r + 0.2f, col.g + 0.2f, col.b + 0.2f, 1f) else col
             shapeRenderer.rect(8f, sy, slotW, slotH)
         }
@@ -405,6 +498,35 @@ class SandboxScreen(private val game: AutobattlerGame) : ScreenAdapter() {
             val worldY = Gdx.graphics.height - screenY.toFloat()
 
             when (phase) {
+                SandboxPhase.TERRITORY_EDITOR -> {
+                    val screenH = Gdx.graphics.height.toFloat()
+                    val btnW    = gridOffsetX - 16f
+                    val btnH    = 46f
+                    val (playerY, enemyY, resetY) = territoryButtonBounds(screenH)
+                    when {
+                        screenX >= 8f && screenX <= 8f + btnW && worldY >= playerY && worldY <= playerY + btnH -> {
+                            paintingPlayerSide = true; return true
+                        }
+                        screenX >= 8f && screenX <= 8f + btnW && worldY >= enemyY && worldY <= enemyY + btnH -> {
+                            paintingPlayerSide = false; return true
+                        }
+                        screenX >= 8f && screenX <= 8f + btnW && worldY >= resetY && worldY <= resetY + btnH -> {
+                            playerTerritory.clear()
+                            playerTerritory.addAll((0 until BattleGrid.ENEMY_ZONE_START)
+                                .flatMap { x -> (0 until BattleGrid.GRID_SIZE).map { y -> Position(x, y) } })
+                            return true
+                        }
+                    }
+                    // Grid paint
+                    val gx = ((screenX - gridOffsetX) / cellSize).toInt()
+                    val gy = ((worldY - gridOffsetY) / cellSize).toInt()
+                    if (gx in 0 until grid.width && gy in 0 until grid.height) {
+                        paintTerritoryCell(gx, gy)
+                        isPainting = true
+                        return true
+                    }
+                }
+
                 SandboxPhase.MAP_EDITOR -> {
                     // Tile palette click
                     for ((i, tile) in TileType.entries.withIndex()) {
@@ -466,6 +588,13 @@ class SandboxScreen(private val game: AutobattlerGame) : ScreenAdapter() {
         override fun touchDragged(screenX: Int, screenY: Int, pointer: Int): Boolean {
             val worldY = Gdx.graphics.height - screenY.toFloat()
 
+            if (phase == SandboxPhase.TERRITORY_EDITOR && isPainting) {
+                val gx = ((screenX - gridOffsetX) / cellSize).toInt()
+                val gy = ((worldY - gridOffsetY) / cellSize).toInt()
+                if (gx in 0 until grid.width && gy in 0 until grid.height) paintTerritoryCell(gx, gy)
+                return true
+            }
+
             if (phase == SandboxPhase.MAP_EDITOR && isPainting) {
                 val gx = ((screenX - gridOffsetX) / cellSize).toInt()
                 val gy = ((worldY - gridOffsetY) / cellSize).toInt()
@@ -496,7 +625,7 @@ class SandboxScreen(private val game: AutobattlerGame) : ScreenAdapter() {
             val type   = draggingType
 
             if (type != null && gx in 0 until grid.width && gy in 0 until grid.height
-                && isValidZone(gx, selectedTab.owner)
+                && isValidZone(gx, gy, selectedTab.owner)
                 && grid.getTile(gx, gy).placeable
                 && grid.canUnitFitAt(Position(gx, gy), type.size)
             ) {
@@ -515,10 +644,15 @@ class SandboxScreen(private val game: AutobattlerGame) : ScreenAdapter() {
         }
     }
 
-    private fun isValidZone(gridX: Int, owner: BattleUnit.Owner) = when (owner) {
-        BattleUnit.Owner.PLAYER  -> gridX < BattleGrid.ENEMY_ZONE_START
-        BattleUnit.Owner.ENEMY   -> gridX >= BattleGrid.ENEMY_ZONE_START
+    private fun isValidZone(gridX: Int, gridY: Int, owner: BattleUnit.Owner) = when (owner) {
+        BattleUnit.Owner.PLAYER  -> Position(gridX, gridY) in playerTerritory
+        BattleUnit.Owner.ENEMY   -> Position(gridX, gridY) !in playerTerritory
         BattleUnit.Owner.NATURAL -> true
+    }
+
+    private fun paintTerritoryCell(gx: Int, gy: Int) {
+        val pos = Position(gx, gy)
+        if (paintingPlayerSide) playerTerritory.add(pos) else playerTerritory.remove(pos)
     }
 
     // ─── UI buttons ──────────────────────────────────────────────────────────
@@ -528,21 +662,38 @@ class SandboxScreen(private val game: AutobattlerGame) : ScreenAdapter() {
         val table = Table().apply { setFillParent(true); bottom().right().pad(20f) }
 
         when (phase) {
+            SandboxPhase.TERRITORY_EDITOR -> {
+                val nextBtn = TextButton("NEXT: PAINT TILES ▶", skin)
+                nextBtn.addListener(object : ClickListener() {
+                    override fun clicked(e: InputEvent?, x: Float, y: Float) {
+                        phase = SandboxPhase.MAP_EDITOR; rebuildUI()
+                    }
+                })
+                table.add(nextBtn).width(230f).height(52f).pad(8f).row()
+                addBackButton(table)
+            }
+
             SandboxPhase.MAP_EDITOR -> {
                 val nextBtn = TextButton("NEXT: PLACE UNITS ▶", skin)
                 nextBtn.addListener(object : ClickListener() {
                     override fun clicked(e: InputEvent?, x: Float, y: Float) {
-                        phase = SandboxPhase.UNIT_PLACEMENT
-                        rebuildUI()
+                        phase = SandboxPhase.UNIT_PLACEMENT; rebuildUI()
                     }
                 })
                 table.add(nextBtn).width(230f).height(52f).pad(8f).row()
 
+                val backTerrBtn = TextButton("◀ EDIT TERRITORY", skin)
+                backTerrBtn.addListener(object : ClickListener() {
+                    override fun clicked(e: InputEvent?, x: Float, y: Float) {
+                        phase = SandboxPhase.TERRITORY_EDITOR; rebuildUI()
+                    }
+                })
+                table.add(backTerrBtn).width(210f).height(45f).pad(8f).row()
                 addBackButton(table)
             }
 
             SandboxPhase.UNIT_PLACEMENT -> {
-                val hasPlayer  = allUnitsById.values.any { it.owner == BattleUnit.Owner.PLAYER }
+                val hasPlayer   = allUnitsById.values.any { it.owner == BattleUnit.Owner.PLAYER }
                 val hasOpponent = allUnitsById.values.any { it.owner == BattleUnit.Owner.ENEMY || it.owner == BattleUnit.Owner.NATURAL }
 
                 if (hasPlayer && hasOpponent) {
@@ -556,12 +707,10 @@ class SandboxScreen(private val game: AutobattlerGame) : ScreenAdapter() {
                 val backMapBtn = TextButton("◀ EDIT MAP", skin)
                 backMapBtn.addListener(object : ClickListener() {
                     override fun clicked(e: InputEvent?, x: Float, y: Float) {
-                        phase = SandboxPhase.MAP_EDITOR
-                        rebuildUI()
+                        phase = SandboxPhase.MAP_EDITOR; rebuildUI()
                     }
                 })
                 table.add(backMapBtn).width(180f).height(45f).pad(8f).row()
-
                 addBackButton(table)
             }
         }
@@ -591,13 +740,21 @@ class SandboxScreen(private val game: AutobattlerGame) : ScreenAdapter() {
             }
         }
 
+        // Build a snapshot of the territory (only store non-default, or always store for sandbox)
+        val territory: Set<Position>? = playerTerritory.toSet().takeUnless { set ->
+            // Skip if it exactly matches the default left/right split (saves memory for normal scenarios)
+            set.size == BattleGrid.ENEMY_ZONE_START * BattleGrid.GRID_SIZE &&
+            set.all { it.x < BattleGrid.ENEMY_ZONE_START }
+        }
+
         val scenario = ScenarioDefinition(
-            name               = "Sandbox Battle",
-            description        = "Custom sandbox scenario",
-            enemyPlacements    = enemyPlacements,
-            playerPlacements   = playerPlacements,
-            naturalPlacements  = naturalPlacements,
-            tileOverrides      = tileOverrides.ifEmpty { null }
+            name              = "Sandbox Battle",
+            description       = "Custom sandbox scenario",
+            enemyPlacements   = enemyPlacements,
+            playerPlacements  = playerPlacements,
+            naturalPlacements = naturalPlacements,
+            tileOverrides     = tileOverrides.ifEmpty { null },
+            playerTerritory   = territory
         )
 
         game.screen = BattleScreen(game, scenario, onBattleEnd = { game.screen = this })
