@@ -47,6 +47,10 @@ class MainMenuScreen(private val game: AutobattlerGame) : ScreenAdapter() {
         addButton(root, "TUTORIAL", 240f, 64f) {
             game.screen = BattleScreen(game, Scenarios.tutorialSequence[0])
         }
+        addButton(root, "SANDBOX", 240f, 64f) {
+            game.screen = SandboxScreen(game)
+        }
+        root.row()
 
         root.add(Label("[DEV] Quick Test:", skin, "small").also { it.color = Color.GRAY }).padTop(16f).padBottom(4f)
         root.row()
