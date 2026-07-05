@@ -117,6 +117,7 @@ class BattleScreen(
     // ─── Animation state ────────────────────────────────────────────────────────
     private val renderPositions = mutableMapOf<Int, Vector2>()
     private val renderHp = mutableMapOf<Int, Int>()
+    private val renderCooldown = mutableMapOf<Int, Int>()   // current cooldownTimer per unit
     private val deadUnits = mutableSetOf<Int>()
     private val allUnitsById = mutableMapOf<Int, BattleUnit>()
 
@@ -330,7 +331,11 @@ class BattleScreen(
             val cy = gridOffsetY + renderPos.y * cellSize + cellSize * uc / 2
             val radius = cellSize * uc * 0.42f
 
-            var color = if (unit.owner == BattleUnit.Owner.PLAYER) Color(0.2f, 0.6f, 1f, 0.6f) else Color(1f, 0.3f, 0.2f, 0.6f)
+            var color = when (unit.owner) {
+                BattleUnit.Owner.PLAYER  -> Color(0.2f, 0.6f, 1f, 0.6f)
+                BattleUnit.Owner.ENEMY   -> Color(1f, 0.3f, 0.2f, 0.6f)
+                BattleUnit.Owner.NATURAL -> Color(0.6f, 0.45f, 0.1f, 0.6f)  // amber — neutral predator
+            }
             if (unitId == flashUnitId && flashTimer > 0f) {
                 val t = flashTimer / 0.3f
                 color = Color(MathUtils.lerp(color.r, flashColor.r, t), MathUtils.lerp(color.g, flashColor.g, t), MathUtils.lerp(color.b, flashColor.b, t), 1f)
@@ -351,6 +356,18 @@ class BattleScreen(
             shapeRenderer.color = when { hp01 > 0.6f -> Color(0.2f, 0.8f, 0.2f, 1f); hp01 > 0.3f -> Color(0.9f, 0.8f, 0.1f, 1f); else -> Color(0.9f, 0.2f, 0.2f, 1f) }
             shapeRenderer.rect(bx, by, barW * hp01, barH)
 
+            // Cooldown / readiness bar (battle phase only; skip structures which never act)
+            if (phase == Phase.BATTLE && !unit.type.isStructure) {
+                val maxCd = unit.type.cooldown
+                val curCd = renderCooldown[unitId] ?: 0
+                val ready01 = if (maxCd <= 0) 1f else (maxCd - curCd).toFloat() / maxCd
+                val cby = by - 6f
+                shapeRenderer.color = Color(0.1f, 0.1f, 0.1f, 1f)
+                shapeRenderer.rect(bx, cby, barW, 4f)
+                shapeRenderer.color = if (ready01 >= 1f) Color(1f, 0.85f, 0f, 1f) else Color(0.2f, 0.75f, 0.9f, 1f)
+                shapeRenderer.rect(bx, cby, barW * ready01, 4f)
+            }
+
             // In setup phase: show remove [X] indicator on placed player units
             if (phase == Phase.SETUP && unit.owner == BattleUnit.Owner.PLAYER) {
                 shapeRenderer.color = Color(0.8f, 0.2f, 0.2f, 0.7f)
@@ -367,7 +384,11 @@ class BattleScreen(
             val ss = cellSize * uc - 8f
             val sx = gridOffsetX + renderPos.x * cellSize + (cellSize * uc - ss) / 2
             val sy = gridOffsetY + renderPos.y * cellSize + (cellSize * uc - ss) / 2 - 2f
-            batch.setColor(if (unit.owner == BattleUnit.Owner.ENEMY) Color(1f, 0.6f, 0.6f, 1f) else Color.WHITE)
+            batch.setColor(when (unit.owner) {
+                BattleUnit.Owner.ENEMY   -> Color(1f, 0.6f, 0.6f, 1f)
+                BattleUnit.Owner.NATURAL -> Color(0.9f, 0.8f, 0.5f, 1f)  // warm tint for wildlife
+                else                     -> Color.WHITE
+            })
             batch.draw(SpriteGenerator.getTexture(unit.type), sx, sy, ss, ss)
         }
         batch.setColor(Color.WHITE)
@@ -520,6 +541,9 @@ class BattleScreen(
         eventTimer = 0f
         animating = false
         battleLog.clear()
+        // All units start the battle ready to act (cooldown = 0)
+        renderCooldown.clear()
+        allUnitsById.keys.forEach { renderCooldown[it] = 0 }
         val logPath = BattleLogger.log(grid, battleOutcome!!, scenario.name)
         Gdx.app.log("Autobattler", "Battle log saved: $logPath")
         rebuildUI()
@@ -569,7 +593,13 @@ class BattleScreen(
     private fun applyNextEvent() {
         if (currentEventIndex >= battleEvents.size) return
         when (val event = battleEvents[currentEventIndex++]) {
-            is BattleEvent.TurnStart -> battleLog.add("── Turn ${event.turnNumber} ──")
+            is BattleEvent.TurnStart -> {
+                battleLog.add("── Turn ${event.turnNumber} ──")
+                // Tick all cooldown timers down by 1 (mirrors engine behaviour)
+                for (id in renderCooldown.keys) {
+                    renderCooldown[id] = ((renderCooldown[id] ?: 0) - 1).coerceAtLeast(0)
+                }
+            }
             is BattleEvent.Move -> {
                 val isLast = currentEventIndex >= battleEvents.size || battleEvents[currentEventIndex] !is BattleEvent.Move
                     || (battleEvents[currentEventIndex] as BattleEvent.Move).unitId != event.unitId
@@ -581,23 +611,28 @@ class BattleScreen(
             is BattleEvent.Attack -> {
                 battleLog.add("${event.attackerName} deals ${event.damage} to ${event.targetName} [${event.targetHpAfter} HP]")
                 renderHp[event.targetId] = event.targetHpAfter
+                // Attacker just acted — reset its cooldown
+                renderCooldown[event.attackerId] = event.attackerType.cooldown
                 flashUnitId = event.targetId; flashTimer = 0.3f; flashColor = Color.RED
                 val tx = gridOffsetX + event.targetPos.x * cellSize + cellSize / 2
                 val ty = gridOffsetY + event.targetPos.y * cellSize + cellSize / 2
                 val ax = gridOffsetX + event.attackerPos.x * cellSize + cellSize / 2
                 val ay = gridOffsetY + event.attackerPos.y * cellSize + cellSize / 2
                 when (event.attackerType) {
-                    is NormalUnitType.Melee  -> { battleEffects.addSlash(tx, ty, event.attackerPos.x > event.targetPos.x); SoundGenerator.getSwordClash().play(0.5f) }
-                    is NormalUnitType.Ranged -> { battleEffects.addArrow(ax, ay, tx, ty); SoundGenerator.getArrowShot().play(0.4f) }
-                    is MonsterUnitType.Bear  -> { battleEffects.addSlash(tx, ty, event.attackerPos.x > event.targetPos.x); SoundGenerator.getSwordClash().play(0.7f) }
-                    is NormalUnitType.Healer -> battleEffects.addSlash(tx, ty, false)
-                    is SpecialUnitType.Farmer  -> {}
-                    is StructureUnitType.Farm  -> {}
+                    is NormalUnitType.Melee   -> { battleEffects.addSlash(tx, ty, event.attackerPos.x > event.targetPos.x); SoundGenerator.getSwordClash().play(0.5f) }
+                    is NormalUnitType.Ranged  -> { battleEffects.addArrow(ax, ay, tx, ty); SoundGenerator.getArrowShot().play(0.4f) }
+                    is MonsterUnitType.Bear   -> { battleEffects.addSlash(tx, ty, event.attackerPos.x > event.targetPos.x); SoundGenerator.getSwordClash().play(0.7f) }
+                    is MonsterUnitType.Wolf   -> { battleEffects.addSlash(tx, ty, event.attackerPos.x > event.targetPos.x); SoundGenerator.getSwordClash().play(0.55f) }
+                    is NormalUnitType.Healer  -> battleEffects.addSlash(tx, ty, false)
+                    is SpecialUnitType.Farmer -> {}
+                    is StructureUnitType.Farm -> {}
                 }
             }
             is BattleEvent.Heal -> {
                 battleLog.add("${event.healerName} heals ${event.targetName} +${event.amount} [${event.targetHpAfter} HP]")
                 renderHp[event.targetId] = event.targetHpAfter
+                // Healer just acted — reset its cooldown
+                renderCooldown[event.healerId] = allUnitsById[event.healerId]?.type?.cooldown ?: 0
                 flashUnitId = event.targetId; flashTimer = 0.3f; flashColor = Color.GREEN
                 val tx = gridOffsetX + event.targetPos.x * cellSize + cellSize / 2
                 val ty = gridOffsetY + event.targetPos.y * cellSize + cellSize / 2
@@ -609,6 +644,8 @@ class BattleScreen(
             }
             is BattleEvent.FarmPlanted -> {
                 battleLog.add("${event.farmerName} planted a Farm at (${event.position.x},${event.position.y})")
+                // Farmer just acted — reset its cooldown
+                renderCooldown[event.farmerId] = allUnitsById[event.farmerId]?.type?.cooldown ?: 0
                 // Register the dynamically spawned Farm unit for rendering
                 val farm = BattleUnit(id = event.farmId, type = StructureUnitType.Farm, owner = BattleUnit.Owner.PLAYER, position = event.position)
                 registerUnit(farm)

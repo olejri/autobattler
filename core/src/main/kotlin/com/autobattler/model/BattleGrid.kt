@@ -30,6 +30,9 @@ class BattleGrid(
     fun enemyUnits(): List<BattleUnit> =
         aliveUnits.filter { it.owner == BattleUnit.Owner.ENEMY }
 
+    fun naturalUnits(): List<BattleUnit> =
+        aliveUnits.filter { it.owner == BattleUnit.Owner.NATURAL }
+
     // ─── Tile Access ────────────────────────────────────────────────────────────
 
     fun getTile(pos: Position): TileType {
@@ -110,8 +113,9 @@ class BattleGrid(
         if (!tile.placeable) return false
         if (unitAt(position) != null) return false
         return when (owner) {
-            BattleUnit.Owner.PLAYER -> position.x <= PLAYER_ZONE_END
-            BattleUnit.Owner.ENEMY -> position.x >= ENEMY_ZONE_START
+            BattleUnit.Owner.PLAYER  -> position.x <= PLAYER_ZONE_END
+            BattleUnit.Owner.ENEMY   -> position.x >= ENEMY_ZONE_START
+            BattleUnit.Owner.NATURAL -> true  // NATURAL units can be placed anywhere on the map
         }
     }
 

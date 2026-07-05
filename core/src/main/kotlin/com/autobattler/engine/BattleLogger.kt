@@ -70,8 +70,9 @@ object BattleLogger {
         sb.appendLine("│")
 
         val allUnits = grid.allUnits
-        val playerUnits = allUnits.filter { it.owner == BattleUnit.Owner.PLAYER }
-        val enemyUnits = allUnits.filter { it.owner == BattleUnit.Owner.ENEMY }
+        val playerUnits  = allUnits.filter { it.owner == BattleUnit.Owner.PLAYER }
+        val enemyUnits   = allUnits.filter { it.owner == BattleUnit.Owner.ENEMY }
+        val naturalUnits = allUnits.filter { it.owner == BattleUnit.Owner.NATURAL }
 
         sb.appendLine("│  PLAYER UNITS:")
         for (unit in playerUnits) {
@@ -83,6 +84,14 @@ object BattleLogger {
         for (unit in enemyUnits) {
             sb.appendLine("│    ${unitTag(unit)} at (${unit.position.x}, ${unit.position.y})")
             sb.appendLine("│      HP: ${unit.currentHp}/${unit.type.maxHp}  ATK: ${unit.type.power}  SPD: ${unit.type.speed}  CD: ${unit.type.cooldown}  Range: ${unit.type.attackRange}")
+        }
+        if (naturalUnits.isNotEmpty()) {
+            sb.appendLine("│")
+            sb.appendLine("│  NATURAL UNITS:")
+            for (unit in naturalUnits) {
+                sb.appendLine("│    ${unitTag(unit)} at (${unit.position.x}, ${unit.position.y})")
+                sb.appendLine("│      HP: ${unit.currentHp}/${unit.type.maxHp}  ATK: ${unit.type.power}  SPD: ${unit.type.speed}  CD: ${unit.type.cooldown}  Range: ${unit.type.attackRange}")
+            }
         }
         sb.appendLine("│")
         sb.appendLine("└───────────────────────────────────────────────────────────────")
@@ -120,6 +129,13 @@ object BattleLogger {
                 is BattleEvent.Death -> {
                     val tag = unitById[event.unitId]?.let { unitTag(it) } ?: event.unitName
                     sb.appendLine("│  [DEATH] ☠ $tag has been eliminated!")
+                }
+                is BattleEvent.FarmPlanted -> {
+                    val tag = unitById[event.farmerId]?.let { unitTag(it) } ?: event.farmerName
+                    sb.appendLine("│  [FARM_PLANTED] $tag planted Farm #${event.farmId} at (${event.position.x},${event.position.y})")
+                }
+                is BattleEvent.FarmGold -> {
+                    sb.appendLine("│  [FARM_GOLD] Farm #${event.farmId} yielded +${event.amount}g")
                 }
             }
         }

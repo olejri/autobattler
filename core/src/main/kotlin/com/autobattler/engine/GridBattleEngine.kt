@@ -334,9 +334,16 @@ class GridBattleEngine {
     /**
      * Returns enemies of [unit], with non-structure units first.
      * Structures (Farm) are last-resort targets.
+     * NATURAL units are never in the enemy list of PLAYER/ENEMY — they are neutral.
+     * A NATURAL unit sees all non-NATURAL units as potential targets (handled by processWolf).
      */
     private fun getEnemiesOf(unit: BattleUnit, allUnits: List<BattleUnit>): List<BattleUnit> {
-        val enemies = allUnits.filter { it.isAlive && it.owner != unit.owner }
+        val enemies = when (unit.owner) {
+            BattleUnit.Owner.NATURAL ->
+                allUnits.filter { it.isAlive && it.owner != BattleUnit.Owner.NATURAL }
+            else ->
+                allUnits.filter { it.isAlive && it.owner != unit.owner && it.owner != BattleUnit.Owner.NATURAL }
+        }
         return enemies.sortedBy { if (it.type.isStructure) 1 else 0 }
     }
 
@@ -344,9 +351,15 @@ class GridBattleEngine {
      * Returns the highest-priority target for [unit]:
      * - Non-structure enemies first, by proximity
      * - Falls back to structures only if no other targets remain
+     * - NATURAL units are excluded from PLAYER/ENEMY targeting
      */
     private fun getPriorityTarget(unit: BattleUnit, allUnits: List<BattleUnit>): BattleUnit? {
-        val enemies = allUnits.filter { it.isAlive && it.owner != unit.owner }
+        val enemies = when (unit.owner) {
+            BattleUnit.Owner.NATURAL ->
+                allUnits.filter { it.isAlive && it.owner != BattleUnit.Owner.NATURAL }
+            else ->
+                allUnits.filter { it.isAlive && it.owner != unit.owner && it.owner != BattleUnit.Owner.NATURAL }
+        }
         val combatTargets = enemies.filter { !it.type.isStructure }
         return if (combatTargets.isNotEmpty())
             combatTargets.minByOrNull { unit.distanceToPosition(it.position) }

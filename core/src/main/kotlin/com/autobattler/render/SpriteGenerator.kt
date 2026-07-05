@@ -23,6 +23,7 @@ object SpriteGenerator {
     private var archerTexture: Texture? = null
     private var clericTexture: Texture? = null
     private var bearTexture: Texture? = null
+    private var wolfTexture: Texture? = null
     private var commanderTexture: Texture? = null
     private var farmerTexture: Texture? = null
     private var farmTexture: Texture? = null
@@ -32,6 +33,7 @@ object SpriteGenerator {
         is NormalUnitType.Ranged  -> archerTexture  ?: generateArcher().also  { archerTexture = it }
         is NormalUnitType.Healer  -> clericTexture  ?: generateCleric().also  { clericTexture = it }
         is MonsterUnitType.Bear   -> bearTexture    ?: generateBear().also    { bearTexture = it }
+        is MonsterUnitType.Wolf   -> wolfTexture    ?: generateWolf().also    { wolfTexture = it }
         is SpecialUnitType.Farmer -> farmerTexture  ?: generateFarmer().also  { farmerTexture = it }
         is StructureUnitType.Farm -> farmTexture    ?: generateFarm().also    { farmTexture = it }
     }
@@ -44,11 +46,13 @@ object SpriteGenerator {
         archerTexture?.dispose()
         clericTexture?.dispose()
         bearTexture?.dispose()
+        wolfTexture?.dispose()
         commanderTexture?.dispose()
         farmerTexture?.dispose()
         farmTexture?.dispose()
         warriorTexture = null; archerTexture = null; clericTexture = null
-        bearTexture = null; commanderTexture = null; farmerTexture = null; farmTexture = null
+        bearTexture = null; wolfTexture = null; commanderTexture = null
+        farmerTexture = null; farmTexture = null
     }
 
     // ─── Warrior: Shield + Sword ────────────────────────────────────────────────
@@ -242,6 +246,66 @@ object SpriteGenerator {
         return texture
     }
 
+
+    // ─── Wolf: sleek predator token ─────────────────────────────────────────────
+
+    private fun generateWolf(): Texture {
+        val pixmap = Pixmap(SIZE, SIZE, Pixmap.Format.RGBA8888)
+
+        // Background — dark forest green
+        pixmap.setColor(Color(0.08f, 0.1f, 0.07f, 1f))
+        pixmap.fillCircle(CENTER, CENTER, RADIUS)
+
+        // Wolf body (grey oval)
+        pixmap.setColor(Color(0.55f, 0.55f, 0.55f, 1f))
+        pixmap.fillCircle(CENTER, CENTER + 4, 16)
+
+        // Wolf head
+        pixmap.setColor(Color(0.6f, 0.6f, 0.6f, 1f))
+        pixmap.fillCircle(CENTER, CENTER - 10, 13)
+
+        // Pointed ears
+        pixmap.setColor(Color(0.5f, 0.5f, 0.5f, 1f))
+        pixmap.fillTriangle(CENTER - 10, CENTER - 16, CENTER - 4, CENTER - 26, CENTER - 2, CENTER - 16)
+        pixmap.fillTriangle(CENTER + 2,  CENTER - 16, CENTER + 10, CENTER - 26, CENTER + 4, CENTER - 16)
+
+        // Inner ears
+        pixmap.setColor(Color(0.75f, 0.5f, 0.5f, 1f))
+        pixmap.fillTriangle(CENTER - 8, CENTER - 17, CENTER - 5, CENTER - 23, CENTER - 3, CENTER - 17)
+        pixmap.fillTriangle(CENTER + 3, CENTER - 17, CENTER + 7, CENTER - 23, CENTER + 6, CENTER - 17)
+
+        // Snout (lighter grey)
+        pixmap.setColor(Color(0.72f, 0.72f, 0.68f, 1f))
+        pixmap.fillCircle(CENTER, CENTER - 6, 6)
+
+        // Nose (dark)
+        pixmap.setColor(Color(0.15f, 0.1f, 0.1f, 1f))
+        pixmap.fillCircle(CENTER, CENTER - 9, 3)
+
+        // Eyes (amber/yellow — predator)
+        pixmap.setColor(Color(0.9f, 0.7f, 0.1f, 1f))
+        pixmap.fillCircle(CENTER - 5, CENTER - 14, 3)
+        pixmap.fillCircle(CENTER + 5, CENTER - 14, 3)
+        // Pupils
+        pixmap.setColor(Color(0.05f, 0.05f, 0.05f, 1f))
+        pixmap.fillCircle(CENTER - 5, CENTER - 14, 1)
+        pixmap.fillCircle(CENTER + 5, CENTER - 14, 1)
+
+        // Tail (curved arc to the side)
+        pixmap.setColor(Color(0.5f, 0.5f, 0.5f, 1f))
+        drawThickLine(pixmap, CENTER + 12, CENTER + 8, CENTER + 22, CENTER - 4, 3)
+        drawThickLine(pixmap, CENTER + 22, CENTER - 4, CENTER + 20, CENTER - 12, 3)
+
+        // Outer ring — amber/yellow (natural, wild feel)
+        pixmap.setColor(Color(0.75f, 0.6f, 0.1f, 1f))
+        drawCircleOutline(pixmap, CENTER, CENTER, RADIUS, 2)
+
+        val texture = Texture(pixmap)
+        texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
+        pixmap.dispose()
+        return texture
+    }
+
     // ─── Farmer: straw hat + pitchfork ──────────────────────────────────────────
 
     private fun generateFarmer(): Texture {
@@ -306,8 +370,8 @@ object SpriteGenerator {
         for (row in intArrayOf(12, 20, 28, 36, 44)) {
             for (col in intArrayOf(12, 20, 28, 36, 44, 52)) {
                 if (col < SIZE - 6 && row < SIZE - 6) {
-                    drawThickLine(pixmap, col, row + 2, col, row - 2, 2)   // stem
-                    pixmap.fillCircle(col, row - 2, 2)                      // leaf
+                    drawThickLine(pixmap, col, row + 2, col, row - 2, 2)
+                    pixmap.fillCircle(col, row - 2, 2)
                 }
             }
         }
@@ -320,10 +384,8 @@ object SpriteGenerator {
 
         // Border — golden green
         pixmap.setColor(Color(0.6f, 0.82f, 0.2f, 1f))
-        // Top + bottom
         drawThickLine(pixmap, 6, 6, SIZE - 6, 6, 2)
         drawThickLine(pixmap, 6, SIZE - 6, SIZE - 6, SIZE - 6, 2)
-        // Left + right
         drawThickLine(pixmap, 6, 6, 6, SIZE - 6, 2)
         drawThickLine(pixmap, SIZE - 6, 6, SIZE - 6, SIZE - 6, 2)
 
