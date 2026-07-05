@@ -13,7 +13,8 @@ data class BattleUnit(
     val owner: Owner,
     var position: Position,
     var currentHp: Int = type.maxHp,
-    var cooldownTimer: Int = 0
+    var cooldownTimer: Int = 0,
+    var secondaryCooldownTimer: Int = 0
 ) {
     val isAlive: Boolean get() = currentHp > 0
 
@@ -23,6 +24,7 @@ data class BattleUnit(
 
     /** Whether this unit can act (attack/heal) this turn. */
     val canAct: Boolean get() = cooldownTimer <= 0
+    val canUseAbility: Boolean get() = secondaryCooldownTimer <= 0
 
     /** All tiles this unit occupies (based on size and position). */
     fun occupiedTiles(): List<Position> {
@@ -64,9 +66,17 @@ data class BattleUnit(
         cooldownTimer = type.cooldown
     }
 
+    fun startSecondaryCooldown(cd: Int) {
+        secondaryCooldownTimer = cd
+    }
+
     /** Tick the cooldown timer at start of turn. */
     fun tickCooldown() {
         if (cooldownTimer > 0) cooldownTimer--
+    }
+
+    fun tickSecondaryCooldown() {
+        if (secondaryCooldownTimer > 0) secondaryCooldownTimer--
     }
 
     /** Apply damage, clamping HP to 0. */

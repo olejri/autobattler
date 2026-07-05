@@ -207,6 +207,23 @@ object BattleLogger {
                         sb.appendLine("│             ☄ $hitTag at (${hit.unitPos.x},${hit.unitPos.y}) — ${hit.damage} dmg | HP: ${hit.hpAfter}")
                     }
                 }
+                is BattleEvent.FireBreath -> {
+                    val casterTag = unitById[event.casterId]?.let { unitTag(it) } ?: event.casterName
+                    sb.appendLine("│  [FIRE_BREATH] $casterTag breathes fire ${event.direction} | ${event.hits.size} unit(s) hit")
+                    for (hit in event.hits) {
+                        val hitTag = unitById[hit.unitId]?.let { unitTag(it) } ?: hit.unitName
+                        sb.appendLine("│               * $hitTag at (${hit.unitPos.x},${hit.unitPos.y}) — ${hit.damage} dmg | HP: ${hit.hpAfter}")
+                    }
+                }
+                is BattleEvent.Cleave -> {
+                    val atkTag = unitById[event.attackerId]?.let { unitTag(it) } ?: event.attackerName
+                    val primTag = unitById[event.primaryId]?.let { unitTag(it) } ?: event.primaryName
+                    sb.appendLine("│  [CLEAVE] $atkTag cleaves $primTag for ${event.primaryDmg} dmg (HP: ${event.primaryHpAfter})")
+                    for (s in event.splashHits) {
+                        val sTag = unitById[s.unitId]?.let { unitTag(it) } ?: s.unitName
+                        sb.appendLine("│           splash > $sTag at (${s.unitPos.x},${s.unitPos.y}) — ${s.damage} dmg | HP: ${s.hpAfter}")
+                    }
+                }
             }
         }
 
@@ -223,7 +240,9 @@ object BattleLogger {
 
         val kills = outcome.events.count { it is BattleEvent.Death }
         val attacks = outcome.events.count { it is BattleEvent.Attack } +
-                      outcome.events.count { it is BattleEvent.Fireball }
+                      outcome.events.count { it is BattleEvent.Fireball } +
+                      outcome.events.count { it is BattleEvent.FireBreath } +
+                      outcome.events.count { it is BattleEvent.Cleave }
         val heals = outcome.events.count { it is BattleEvent.Heal }
         val moves = outcome.events.count { it is BattleEvent.Move }
 
@@ -240,4 +259,3 @@ object BattleLogger {
         battleCounter = 0
     }
 }
-

@@ -789,8 +789,10 @@ class BattleScreen(
             is BattleEvent.Heal -> {
                 battleLog.add("${event.healerName} heals ${event.targetName} +${event.amount} [${event.targetHpAfter} HP]")
                 renderHp[event.targetId] = event.targetHpAfter
-                // Healer just acted — reset its cooldown
-                renderCooldown[event.healerId] = allUnitsById[event.healerId]?.type?.cooldown ?: 0
+                val healerType = allUnitsById[event.healerId]?.type
+                if (healerType !is MonsterUnitType.Troll) {
+                    renderCooldown[event.healerId] = healerType?.cooldown ?: 0
+                }
                 flashUnitId = event.targetId; flashTimer = 0.3f; flashColor = Color.GREEN
                 val tx = gridOffsetX + event.targetPos.x * cellSize + cellSize / 2
                 val ty = gridOffsetY + event.targetPos.y * cellSize + cellSize / 2
@@ -830,6 +832,39 @@ class BattleScreen(
                 val blastPx = cellSize * (event.radius + 0.5f)
                 battleEffects.addExplosion(tx, ty, blastPx)
                 SoundGenerator.getArrowShot().play(0.85f)
+            }
+            is BattleEvent.FireBreath -> {
+                battleLog.add("${event.casterName} FIRE BREATH ${event.direction} — ${event.hits.size} hit(s)!")
+                for (hit in event.hits) {
+                    renderHp[hit.unitId] = hit.hpAfter
+                }
+                renderCooldown[event.casterId] = 10
+                event.hits.lastOrNull()?.let {
+                    flashUnitId = it.unitId
+                    flashTimer = 0.5f
+                    flashColor = Color(1f, 0.35f, 0f, 1f)
+                }
+                // Visualise every cone tile as an orange flame highlight
+                val tileCenters = event.coneTiles.map { tile ->
+                    Pair(
+                        gridOffsetX + tile.x * cellSize + cellSize / 2,
+                        gridOffsetY + tile.y * cellSize + cellSize / 2
+                    )
+                }
+                battleEffects.addConeFlame(tileCenters, cellSize)
+                SoundGenerator.getArrowShot().play(0.9f)
+            }
+            is BattleEvent.Cleave -> {
+                battleLog.add("${event.attackerName} CLEAVE — ${event.splashHits.size + 1} units hit!")
+                renderHp[event.primaryId] = event.primaryHpAfter
+                for (s in event.splashHits) {
+                    renderHp[s.unitId] = s.hpAfter
+                }
+                renderCooldown[event.attackerId] = allUnitsById[event.attackerId]?.type?.cooldown ?: 0
+                flashUnitId = event.primaryId
+                flashTimer = 0.35f
+                flashColor = Color(1f, 0.2f, 0.2f, 1f)
+                SoundGenerator.getArrowShot().play(0.7f)
             }
         }
     }

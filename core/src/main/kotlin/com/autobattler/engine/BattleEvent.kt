@@ -64,6 +64,22 @@ sealed class BattleEvent {
         val hpAfter: Int
     )
 
+    data class FireBreathHit(
+        val unitId: Int,
+        val unitName: String,
+        val unitPos: Position,
+        val damage: Int,
+        val hpAfter: Int
+    )
+
+    data class SplashHit(
+        val unitId: Int,
+        val unitName: String,
+        val unitPos: Position,
+        val damage: Int,
+        val hpAfter: Int
+    )
+
     /**
      * Wizard fires a fireball aimed at [targetTile].
      * Every unit whose footprint overlaps the blast area (Chebyshev distance ≤ [radius]
@@ -77,6 +93,26 @@ sealed class BattleEvent {
         val targetTile: Position,
         val radius: Int,
         val hits: List<FireballHit>
+    ) : BattleEvent()
+
+    data class FireBreath(
+        val casterId: Int,
+        val casterName: String,
+        val casterPos: Position,
+        val direction: String,
+        val coneTiles: List<Position>,
+        val hits: List<FireBreathHit>
+    ) : BattleEvent()
+
+    data class Cleave(
+        val attackerId: Int,
+        val attackerName: String,
+        val attackerPos: Position,
+        val primaryId: Int,
+        val primaryName: String,
+        val primaryDmg: Int,
+        val primaryHpAfter: Int,
+        val splashHits: List<SplashHit>
     ) : BattleEvent()
 }
 

@@ -880,7 +880,7 @@ class SandboxScreen(private val game: AutobattlerGame) : ScreenAdapter() {
             enemyPlacements   = enemyPlacements,
             playerPlacements  = playerPlacements,
             naturalPlacements = naturalPlacements,
-            tileOverrides     = tileOverrides.ifEmpty { null },
+            tileOverrides     = tileOverrides,
             playerTerritory   = territory
         )
 

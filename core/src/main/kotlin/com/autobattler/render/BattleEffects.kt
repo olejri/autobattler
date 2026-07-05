@@ -64,6 +64,14 @@ class BattleEffects {
         activeEffects.add(ExplosionEffect(centerX, centerY, blastPixelRadius))
     }
 
+    /**
+     * Dragon fire breath: flashes all cone tiles orange, sweeping from closest depth to furthest.
+     * [tileCenters] is a list of (screenX, screenY) tile centres ordered nearest-to-furthest from dragon.
+     */
+    fun addConeFlame(tileCenters: List<Pair<Float, Float>>, tileSize: Float) {
+        activeEffects.add(ConeFlameEffect(tileCenters, tileSize))
+    }
+
     fun clear() = activeEffects.clear()
 
     // ─── Base Effect ────────────────────────────────────────────────────────────
@@ -322,6 +330,53 @@ class BattleEffects {
                     cx + (innerR * cos(a1)).toFloat(), cy + (innerR * sin(a1)).toFloat(),
                     cx + (innerR * cos(a2)).toFloat(), cy + (innerR * sin(a2)).toFloat()
                 )
+            }
+        }
+    }
+
+    // ─── Cone Flame (Dragon Fire Breath) ────────────────────────────────────────
+
+    private class ConeFlameEffect(
+        val tiles: List<Pair<Float, Float>>,
+        val tileSize: Float
+    ) : Effect(duration = 0.6f, blocksPlayback = true) {
+
+        override fun renderFilled(shapeRenderer: ShapeRenderer) {
+            val p = smoothStep(progress)
+            val fade = 1f - p
+
+            for ((cx, cy) in tiles) {
+                val r = tileSize / 2f
+                // Tile background: bright orange fill
+                shapeRenderer.color = Color(1f, 0.35f + p * 0.2f, 0f, fade * 0.55f)
+                shapeRenderer.rect(cx - r, cy - r, tileSize, tileSize)
+                // Inner glow core
+                val inner = r * 0.45f * (1f - p * 0.7f)
+                shapeRenderer.color = Color(1f, 0.75f, 0.1f, fade * 0.7f)
+                shapeRenderer.circle(cx, cy, inner)
+            }
+
+            // Scatter sparks flying outward from each tile
+            val numSparks = 4
+            for ((cx, cy) in tiles) {
+                for (i in 0 until numSparks) {
+                    val angle = Math.toRadians((360.0 / numSparks * i + p * 45))
+                    val dist = tileSize * 0.5f * p
+                    val sx = cx + (dist * kotlin.math.cos(angle)).toFloat()
+                    val sy = cy + (dist * kotlin.math.sin(angle)).toFloat()
+                    shapeRenderer.color = Color(1f, if (i % 2 == 0) 0.6f else 0.2f, 0f, fade * 0.5f)
+                    shapeRenderer.circle(sx, sy, 2.5f * (1f - p))
+                }
+            }
+        }
+
+        override fun renderLine(shapeRenderer: ShapeRenderer) {
+            val p = smoothStep(progress)
+            val fade = (1f - p) * 0.8f
+            for ((cx, cy) in tiles) {
+                val r = tileSize / 2f
+                shapeRenderer.color = Color(1f, 0.55f, 0.1f, fade)
+                shapeRenderer.rect(cx - r, cy - r, tileSize, tileSize)
             }
         }
     }

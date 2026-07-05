@@ -47,11 +47,20 @@ class GridBattleEngine {
                 totalFarmGold += goldPerRound
             }
 
+            for (troll in simUnits.filter { it.isAlive && it.type is MonsterUnitType.Troll }) {
+                if (troll.currentHp < troll.type.maxHp) {
+                    val regenAmt = 5
+                    troll.heal(regenAmt)
+                    events.add(BattleEvent.Heal(troll.id, troll.displayName, troll.id, troll.displayName, troll.position, regenAmt, troll.currentHp))
+                }
+            }
+
             val sortedUnits = simUnits.filter { it.isAlive }.sortedByDescending { it.type.speed }
 
             for (unit in sortedUnits) {
                 if (!unit.isAlive) continue
                 unit.tickCooldown()
+                unit.tickSecondaryCooldown()
 
                 when (unit.type) {
                     is NormalUnitType.Melee, is NormalUnitType.MeleeSilver, is NormalUnitType.MeleeGold -> processMelee(unit, simUnits, grid, events)
@@ -59,7 +68,7 @@ class GridBattleEngine {
                     is NormalUnitType.Healer, is NormalUnitType.HealerSilver, is NormalUnitType.HealerGold -> processHealer(unit, simUnits, grid, events)
                     is NormalUnitType.Knight, is NormalUnitType.KnightSilver, is NormalUnitType.KnightGold -> processMelee(unit, simUnits, grid, events)
                     is NormalUnitType.GriffinRider, is NormalUnitType.GriffinRiderSilver, is NormalUnitType.GriffinRiderGold -> processMelee(unit, simUnits, grid, events)
-                    is MonsterUnitType.Bear    -> processMelee(unit, simUnits, grid, events)
+                    is MonsterUnitType.Bear    -> processBear(unit, simUnits, grid, events)
                     is MonsterUnitType.Wolf    -> processWolf(unit, simUnits, grid, events)
                     is MonsterUnitType.Goblin      -> processMelee(unit, simUnits, grid, events)
                     is MonsterUnitType.Skeleton    -> processMelee(unit, simUnits, grid, events)
@@ -68,7 +77,7 @@ class GridBattleEngine {
                     is MonsterUnitType.Bandit      -> processRanged(unit, simUnits, grid, events)
                     is MonsterUnitType.OrcWarrior  -> processMelee(unit, simUnits, grid, events)
                     is MonsterUnitType.Spider      -> processMelee(unit, simUnits, grid, events)
-                    is MonsterUnitType.Dragon      -> processMelee(unit, simUnits, grid, events)
+                    is MonsterUnitType.Dragon      -> processDragon(unit, simUnits, grid, events)
                     is SpecialUnitType.Farmer, is SpecialUnitType.FarmerSilver, is SpecialUnitType.FarmerGold -> processFarmer(unit, simUnits, grid, events)
                     is SpecialUnitType.Wizard, is SpecialUnitType.WizardSilver, is SpecialUnitType.WizardGold -> processWizard(unit, simUnits, grid, events)
                     is StructureUnitType.Farm  -> { /* passive */ }
@@ -331,7 +340,101 @@ class GridBattleEngine {
 
         val distToTarget = unit.distanceToPosition(target.position)
         if (unit.canAct && distToTarget in unit.type.attackRange) {
+            val nearbyWolf = allUnits.any {
+                it.id != unit.id &&
+                    it.isAlive &&
+                    it.type is MonsterUnitType.Wolf &&
+                    unit.distanceToPosition(it.position) <= 1
+            }
+            val damage = if (nearbyWolf) unit.type.power * 2 else unit.type.power
+            target.takeDamage(damage)
+            unit.startCooldown()
+            events.add(BattleEvent.Attack(unit.id, unit.displayName, unit.position, target.id, target.displayName, target.position, damage, target.currentHp, unit.type))
+            if (!target.isAlive) events.add(BattleEvent.Death(target.id, target.displayName))
+        }
+    }
+
+    private fun processBear(unit: BattleUnit, allUnits: List<BattleUnit>, grid: BattleGrid, events: MutableList<BattleEvent>) {
+        val target = pickReachableTarget(unit, allUnits, grid) ?: return
+
+        if (!unit.isAdjacentToPosition(target.position)) {
+            val flankPos = pickFlankPosition(unit, target, allUnits, grid)
+            if (flankPos != null) {
+                moveOnto(unit, flankPos, allUnits, grid, events)
+            } else {
+                moveToward(unit, target.position, allUnits, grid, events)
+            }
+        }
+
+        val distToTarget = unit.distanceToPosition(target.position)
+        if (unit.canAct && distToTarget in unit.type.attackRange) {
+            val primaryDamage = unit.type.power
+            target.takeDamage(primaryDamage)
+
+            val splashDamage = unit.type.power / 2
+            val splashTargets = allUnits.filter { candidate ->
+                candidate.isAlive &&
+                    candidate.id != unit.id &&
+                    candidate.id != target.id &&
+                    areUnitsAdjacent(candidate, target)
+            }
+            val splashHits = splashTargets.map { splashTarget ->
+                splashTarget.takeDamage(splashDamage)
+                BattleEvent.SplashHit(splashTarget.id, splashTarget.displayName, splashTarget.position, splashDamage, splashTarget.currentHp)
+            }
+
+            events.add(
+                BattleEvent.Cleave(
+                    attackerId = unit.id,
+                    attackerName = unit.displayName,
+                    attackerPos = unit.position,
+                    primaryId = target.id,
+                    primaryName = target.displayName,
+                    primaryDmg = primaryDamage,
+                    primaryHpAfter = target.currentHp,
+                    splashHits = splashHits
+                )
+            )
+
+            if (!target.isAlive) events.add(BattleEvent.Death(target.id, target.displayName))
+            for (splashTarget in splashTargets) {
+                if (!splashTarget.isAlive) events.add(BattleEvent.Death(splashTarget.id, splashTarget.displayName))
+            }
+            unit.startCooldown()
+        }
+    }
+
+    private fun processDragon(unit: BattleUnit, allUnits: List<BattleUnit>, grid: BattleGrid, events: MutableList<BattleEvent>) {
+        val target = pickReachableTarget(unit, allUnits, grid) ?: return
+        val distanceToTarget = unit.distanceToPosition(target.position)
+
+        if (unit.canAct && distanceToTarget in unit.type.attackRange) {
             performAttack(unit, target, events)
+        }
+
+        val closestEnemy = getPriorityTarget(unit, allUnits)
+        if (unit.canUseAbility && closestEnemy != null) {
+            val direction = dragonBreathDirection(unit, closestEnemy)
+            val coneTiles = dragonBreathTiles(unit, direction, grid)
+            val hitUnits = allUnits.filter { candidate ->
+                candidate.isAlive &&
+                    candidate.id != unit.id &&
+                    candidate.occupiedTiles().any { it in coneTiles }
+            }
+            val damage = 10
+            val hits = hitUnits.map { hitUnit ->
+                hitUnit.takeDamage(damage)
+                BattleEvent.FireBreathHit(hitUnit.id, hitUnit.displayName, hitUnit.position, damage, hitUnit.currentHp)
+            }
+            events.add(BattleEvent.FireBreath(unit.id, unit.displayName, unit.position, direction, coneTiles.toList(), hits))
+            for (hitUnit in hitUnits) {
+                if (!hitUnit.isAlive) events.add(BattleEvent.Death(hitUnit.id, hitUnit.displayName))
+            }
+            unit.startSecondaryCooldown(10)
+        }
+
+        if (distanceToTarget !in unit.type.attackRange) {
+            moveToward(unit, target.position, allUnits, grid, events)
         }
     }
 
@@ -691,6 +794,68 @@ class GridBattleEngine {
         healer.startCooldown()
         events.add(BattleEvent.Heal(healer.id, healer.displayName, healer.id, healer.displayName, healer.position, healAmount, healer.currentHp))
     }
+
+    private fun areUnitsAdjacent(first: BattleUnit, second: BattleUnit): Boolean =
+        first.occupiedTiles().any { firstTile ->
+            second.occupiedTiles().any { secondTile ->
+                firstTile.distanceTo(secondTile) <= 1
+            }
+        }
+
+    private fun dragonBreathDirection(dragon: BattleUnit, target: BattleUnit): String {
+        val dragonCenterX = dragon.position.x + (dragon.size - 1) / 2f
+        val dragonCenterY = dragon.position.y + (dragon.size - 1) / 2f
+        val targetCenterX = target.position.x + (target.size - 1) / 2f
+        val targetCenterY = target.position.y + (target.size - 1) / 2f
+        val dx = targetCenterX - dragonCenterX
+        val dy = targetCenterY - dragonCenterY
+
+        return if (kotlin.math.abs(dx) >= kotlin.math.abs(dy)) {
+            if (dx >= 0f) "RIGHT" else "LEFT"
+        } else {
+            if (dy >= 0f) "UP" else "DOWN"
+        }
+    }
+
+    private fun dragonBreathTiles(dragon: BattleUnit, direction: String, grid: BattleGrid): Set<Position> =
+        buildSet {
+            for (d in 1..4) {
+                when (direction) {
+                    "RIGHT" -> {
+                        val x = dragon.position.x + 1 + d
+                        val half = (d - 1)
+                        for (y in dragon.position.y - half..dragon.position.y + 1 + half) {
+                            val tile = Position(x, y)
+                            if (grid.isInBounds(tile)) add(tile)
+                        }
+                    }
+                    "LEFT" -> {
+                        val x = dragon.position.x - d
+                        val half = (d - 1)
+                        for (y in dragon.position.y - half..dragon.position.y + 1 + half) {
+                            val tile = Position(x, y)
+                            if (grid.isInBounds(tile)) add(tile)
+                        }
+                    }
+                    "UP" -> {
+                        val y = dragon.position.y + 1 + d
+                        val half = (d - 1)
+                        for (x in dragon.position.x - half..dragon.position.x + 1 + half) {
+                            val tile = Position(x, y)
+                            if (grid.isInBounds(tile)) add(tile)
+                        }
+                    }
+                    else -> {
+                        val y = dragon.position.y - d
+                        val half = (d - 1)
+                        for (x in dragon.position.x - half..dragon.position.x + 1 + half) {
+                            val tile = Position(x, y)
+                            if (grid.isInBounds(tile)) add(tile)
+                        }
+                    }
+                }
+            }
+        }
 
     // ─── Utility ────────────────────────────────────────────────────────────────
 
