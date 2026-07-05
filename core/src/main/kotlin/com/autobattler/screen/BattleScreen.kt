@@ -40,7 +40,8 @@ class BattleScreen(
     private val game: AutobattlerGame,
     private val scenario: ScenarioDefinition,
     private val commander: Commander? = null,
-    private val boughtRoster: List<UnitType>? = null  // null = buy phase active
+    private val boughtRoster: List<UnitType>? = null,  // null = buy phase active
+    private val onBattleEnd: (() -> Unit)? = null      // sandbox: called instead of going to menu
 ) : ScreenAdapter() {
 
     private enum class Phase { SETUP, BATTLE, RESULT }
@@ -166,8 +167,12 @@ class BattleScreen(
         font = Fonts.create(18, borderWidth = 1f)
         bigFont = Fonts.create(28, borderWidth = 1.5f)
 
-        // Load map
-        if (scenario.mapPath != null) {
+        // Load map — sandbox tileOverrides take priority, then mapPath, then default layout
+        if (scenario.tileOverrides != null) {
+            for ((pos, type) in scenario.tileOverrides) {
+                grid.setTile(pos, type)
+            }
+        } else if (scenario.mapPath != null) {
             try {
                 val mapDef = MapLoader.loadMap(scenario.mapPath)
                 MapLoader.applyToGrid(mapDef, grid)
@@ -183,6 +188,24 @@ class BattleScreen(
             val unit = BattleUnit(id = nextUnitId++, type = type, owner = BattleUnit.Owner.ENEMY, position = pos)
             grid.placeUnit(unit)
             registerUnit(unit)
+        }
+
+        // Sandbox: pre-place player and natural units, then go straight to battle
+        if (scenario.playerPlacements != null) {
+            for ((type, pos) in scenario.playerPlacements) {
+                val unit = BattleUnit(id = nextUnitId++, type = type, owner = BattleUnit.Owner.PLAYER, position = pos)
+                grid.placeUnit(unit)
+                registerUnit(unit)
+                placedPlayerUnitIds.add(unit.id)
+            }
+            for ((type, pos) in scenario.naturalPlacements.orEmpty()) {
+                val unit = BattleUnit(id = nextUnitId++, type = type, owner = BattleUnit.Owner.NATURAL, position = pos)
+                grid.placeUnit(unit)
+                registerUnit(unit)
+            }
+            startBattle()
+            rebuildUI()
+            return
         }
 
         // If bypassing buy (dev quick-test), pre-populate the rosterPool from scenario default
@@ -874,7 +897,7 @@ class BattleScreen(
                     table.add(retreatBtn).width(200f).height(45f).pad(8f)
 
                 } else {
-                    // ── Tutorial / standalone mode ─────────────────────────────────
+                    // ── Tutorial / standalone / sandbox mode ──────────────────────
                     val hasNext = tutorialIndex in 0 until Scenarios.tutorialSequence.size - 1
                     if (won && hasNext) {
                         val nextBtn = TextButton("NEXT BATTLE", skin)
@@ -886,19 +909,28 @@ class BattleScreen(
                         table.add(nextBtn).width(200f).height(45f).pad(8f).row()
                     }
 
-                    val retryBtn = TextButton("RETRY", skin)
-                    retryBtn.addListener(object : ClickListener() {
-                        override fun clicked(event: InputEvent?, x: Float, y: Float) {
-                            game.screen = BattleScreen(game, scenario)
-                        }
-                    })
-                    table.add(retryBtn).width(200f).height(45f).pad(8f).row()
+                    if (onBattleEnd != null) {
+                        // Sandbox mode — go back to sandbox setup
+                        val backBtn = TextButton("BACK TO SANDBOX", skin)
+                        backBtn.addListener(object : ClickListener() {
+                            override fun clicked(event: InputEvent?, x: Float, y: Float) { onBattleEnd.invoke() }
+                        })
+                        table.add(backBtn).width(220f).height(45f).pad(8f)
+                    } else {
+                        val retryBtn = TextButton("RETRY", skin)
+                        retryBtn.addListener(object : ClickListener() {
+                            override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                                game.screen = BattleScreen(game, scenario)
+                            }
+                        })
+                        table.add(retryBtn).width(200f).height(45f).pad(8f).row()
 
-                    val menuBtn = TextButton("MENU", skin)
-                    menuBtn.addListener(object : ClickListener() {
-                        override fun clicked(event: InputEvent?, x: Float, y: Float) { game.screen = MainMenuScreen(game) }
-                    })
-                    table.add(menuBtn).width(200f).height(45f).pad(8f)
+                        val menuBtn = TextButton("MENU", skin)
+                        menuBtn.addListener(object : ClickListener() {
+                            override fun clicked(event: InputEvent?, x: Float, y: Float) { game.screen = MainMenuScreen(game) }
+                        })
+                        table.add(menuBtn).width(200f).height(45f).pad(8f)
+                    }
                 }
             }
         }

@@ -155,6 +155,11 @@ data class ScenarioDefinition(
     val playerRoster: List<UnitType>? = null,  // null = player must buy
     val enemyPlacements: List<Pair<UnitType, Position>>,
     val xpReward: Int = 50,
-    val goldReward: Int = 200
+    val goldReward: Int = 200,
+    // Sandbox-only: pre-placed units that skip the buy phase entirely
+    val playerPlacements: List<Pair<UnitType, Position>>? = null,
+    val naturalPlacements: List<Pair<UnitType, Position>>? = null,
+    // Sandbox-only: custom tile layout (applied instead of mapPath when set)
+    val tileOverrides: List<Pair<Position, TileType>>? = null
 )
 
