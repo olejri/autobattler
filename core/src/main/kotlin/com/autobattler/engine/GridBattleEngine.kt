@@ -106,7 +106,7 @@ class GridBattleEngine {
 
         // If not yet adjacent, navigate to the best unoccupied flank position so
         // allies spread out rather than all queuing onto the same tile.
-        if (!unit.isAdjacentToPosition(target.position)) {
+        if (!unit.isAdjacentToUnit(target)) {
             val flankPos = pickFlankPosition(unit, target, allUnits, grid)
             if (flankPos != null) {
                 // Move onto the chosen flank tile (exact destination, not adjacent-to it).
@@ -117,7 +117,7 @@ class GridBattleEngine {
             }
         }
 
-        val distToTarget = unit.distanceToPosition(target.position)
+        val distToTarget = unit.distanceToUnit(target)
         if (unit.canAct && distToTarget in unit.type.attackRange) {
             performAttack(unit, target, events)
         }
@@ -140,14 +140,14 @@ class GridBattleEngine {
             BattleUnit.Owner.NATURAL ->
                 allUnits.filter { it.isAlive && it.owner != BattleUnit.Owner.NATURAL }
             else ->
-                allUnits.filter { it.isAlive && it.owner != unit.owner && it.owner != BattleUnit.Owner.NATURAL }
+                allUnits.filter { it.isAlive && it.owner != unit.owner }
         }
         val combatTargets = enemies.filter { !it.type.isStructure }
         if (combatTargets.isEmpty())
-            return enemies.minByOrNull { unit.distanceToPosition(it.position) }
+            return enemies.minByOrNull { unit.distanceToUnit(it) }
 
         // If already adjacent to any combat target, attack it immediately.
-        combatTargets.find { unit.isAdjacentToPosition(it.position) }?.let { return it }
+        combatTargets.find { unit.isAdjacentToUnit(it) }?.let { return it }
 
         return combatTargets.minByOrNull { enemy ->
             val flank = pickFlankPosition(unit, enemy, allUnits, grid)
@@ -177,7 +177,7 @@ class GridBattleEngine {
      * Returns null if the unit is already adjacent or there are no valid candidates.
      */
     private fun pickFlankPosition(unit: BattleUnit, target: BattleUnit, allUnits: List<BattleUnit>, grid: BattleGrid): Position? {
-        if (unit.isAdjacentToPosition(target.position)) return null
+        if (unit.isAdjacentToUnit(target)) return null
 
         val targetSize = target.size
         val unitSize   = unit.size
@@ -322,42 +322,93 @@ class GridBattleEngine {
     // ─── WOLF ────────────────────────────────────────────────────────────────────
 
     /**
-     * Wolf is a neutral ([BattleUnit.Owner.NATURAL]) predator.
-     * It stays completely idle until any non-NATURAL unit enters within
-     * [WOLF_AGGRO_RANGE] tiles.  Once aggroed it pursues and attacks the
-     * closest intruder.
+     * Wolf behaviour depends on its owner:
+     *  - PLAYER/ENEMY: standard melee + pack-bonus damage (like any other fighter)
+     *  - NATURAL: idle until an intruder enters [WOLF_AGGRO_RANGE].
+     *    When ANY wolf in the pack aggros, it chain-spreads to all NATURAL wolves
+     *    within [WOLF_AGGRO_RANGE] of any already-aggroed wolf (BFS flood-fill).
+     *    Once aggroed a wolf stays aggroed forever (isAggroed flag).
      */
     private fun processWolf(unit: BattleUnit, allUnits: List<BattleUnit>, grid: BattleGrid, events: MutableList<BattleEvent>) {
-        val intruders = allUnits.filter { other ->
-            other.isAlive &&
-            other.owner != BattleUnit.Owner.NATURAL &&
-            unit.distanceToPosition(other.position) <= WOLF_AGGRO_RANGE
-        }
-        if (intruders.isEmpty()) return   // no one nearby — stay idle
 
-        val target = intruders.minByOrNull { unit.distanceToPosition(it.position) } ?: return
-        moveToward(unit, target.position, allUnits, grid, events)
-
-        val distToTarget = unit.distanceToPosition(target.position)
-        if (unit.canAct && distToTarget in unit.type.attackRange) {
-            val nearbyWolf = allUnits.any {
+        // ── Helper: apply pack-bonus attack ─────────────────────────────────────
+        fun wolfAttack(target: BattleUnit) {
+            val nearbyAllyWolf = allUnits.any {
                 it.id != unit.id &&
                     it.isAlive &&
+                    it.owner == unit.owner &&
                     it.type is MonsterUnitType.Wolf &&
-                    unit.distanceToPosition(it.position) <= 1
+                    unit.distanceToUnit(it) <= 1
             }
-            val damage = if (nearbyWolf) unit.type.power * 2 else unit.type.power
+            val damage = if (nearbyAllyWolf) unit.type.power * 2 else unit.type.power
             target.takeDamage(damage)
             unit.startCooldown()
             events.add(BattleEvent.Attack(unit.id, unit.displayName, unit.position, target.id, target.displayName, target.position, damage, target.currentHp, unit.type))
             if (!target.isAlive) events.add(BattleEvent.Death(target.id, target.displayName))
+        }
+
+        if (unit.owner != BattleUnit.Owner.NATURAL) {
+            // ── PLAYER / ENEMY wolf: behaves like a normal fighter ───────────────
+            val target = pickReachableTarget(unit, allUnits, grid) ?: return
+            if (!unit.isAdjacentToUnit(target)) {
+                val flankPos = pickFlankPosition(unit, target, allUnits, grid)
+                if (flankPos != null) moveOnto(unit, flankPos, allUnits, grid, events)
+                else moveToward(unit, target.position, allUnits, grid, events)
+            }
+            if (unit.canAct && unit.distanceToUnit(target) in unit.type.attackRange) {
+                wolfAttack(target)
+            }
+        } else {
+            // ── NATURAL wolf: idle until aggroed, then chain-spread to the pack ──
+
+            // Step 1: check if this wolf can directly detect an intruder
+            val directIntruder = allUnits.any { other ->
+                other.isAlive &&
+                    other.owner != BattleUnit.Owner.NATURAL &&
+                    unit.distanceToUnit(other) <= WOLF_AGGRO_RANGE
+            }
+            if (directIntruder) unit.isAggroed = true
+
+            // Step 2: if this wolf just became aggroed (or already was), BFS-spread
+            //         the aggro flag to all NATURAL wolves reachable through the pack.
+            if (unit.isAggroed) {
+                val naturalWolves = allUnits.filter {
+                    it.isAlive && it.owner == BattleUnit.Owner.NATURAL && it.type is MonsterUnitType.Wolf
+                }
+                // BFS from every currently-aggroed wolf
+                val aggroedIds = naturalWolves.filter { it.isAggroed }.map { it.id }.toMutableSet()
+                val frontier = ArrayDeque(naturalWolves.filter { it.isAggroed })
+                while (frontier.isNotEmpty()) {
+                    val current = frontier.removeFirst()
+                    for (neighbour in naturalWolves) {
+                        if (neighbour.id !in aggroedIds &&
+                            current.distanceToUnit(neighbour) <= WOLF_AGGRO_RANGE) {
+                            neighbour.isAggroed = true
+                            aggroedIds.add(neighbour.id)
+                            frontier.add(neighbour)
+                        }
+                    }
+                }
+            }
+
+            // Step 3: if not yet aggroed, stay idle
+            if (!unit.isAggroed) return
+
+            // Step 4: pursue and attack closest non-NATURAL target
+            val target = allUnits
+                .filter { it.isAlive && it.owner != BattleUnit.Owner.NATURAL }
+                .minByOrNull { unit.distanceToUnit(it) } ?: return
+            moveToward(unit, target.position, allUnits, grid, events)
+            if (unit.canAct && unit.distanceToUnit(target) in unit.type.attackRange) {
+                wolfAttack(target)
+            }
         }
     }
 
     private fun processBear(unit: BattleUnit, allUnits: List<BattleUnit>, grid: BattleGrid, events: MutableList<BattleEvent>) {
         val target = pickReachableTarget(unit, allUnits, grid) ?: return
 
-        if (!unit.isAdjacentToPosition(target.position)) {
+        if (!unit.isAdjacentToUnit(target)) {
             val flankPos = pickFlankPosition(unit, target, allUnits, grid)
             if (flankPos != null) {
                 moveOnto(unit, flankPos, allUnits, grid, events)
@@ -366,7 +417,7 @@ class GridBattleEngine {
             }
         }
 
-        val distToTarget = unit.distanceToPosition(target.position)
+        val distToTarget = unit.distanceToUnit(target)
         if (unit.canAct && distToTarget in unit.type.attackRange) {
             val primaryDamage = unit.type.power
             target.takeDamage(primaryDamage)
@@ -406,7 +457,7 @@ class GridBattleEngine {
 
     private fun processDragon(unit: BattleUnit, allUnits: List<BattleUnit>, grid: BattleGrid, events: MutableList<BattleEvent>) {
         val target = pickReachableTarget(unit, allUnits, grid) ?: return
-        val distanceToTarget = unit.distanceToPosition(target.position)
+        val distanceToTarget = unit.distanceToUnit(target)
 
         if (unit.canAct && distanceToTarget in unit.type.attackRange) {
             performAttack(unit, target, events)
@@ -530,28 +581,25 @@ class GridBattleEngine {
 
     private fun processWizard(unit: BattleUnit, allUnits: MutableList<BattleUnit>, grid: BattleGrid, events: MutableList<BattleEvent>) {
         val enemies = getEnemiesOf(unit, allUnits)
-        val closestEnemy = enemies.minByOrNull { unit.distanceToPosition(it.position) } ?: return
+        val closestEnemy = enemies.minByOrNull { unit.distanceToUnit(it) } ?: return
 
-        if (!unit.canAct) {
-            moveToward(unit, closestEnemy.position, allUnits, grid, events)
-            return
-        }
-
-        val fireball = (unit.type as SpecialUnitType).ability as SpecialAbility.Fireball
-
-        // Find enemies in attack range (Manhattan distance from wizard to enemy tile).
+        // Find enemies in attack range (Chebyshev distance).
         val enemiesInRange = enemies.filter { enemy ->
-            unit.position.manhattanDistance(enemy.position) in unit.type.attackRange
+            unit.distanceToUnit(enemy) in unit.type.attackRange
         }
 
+        // Move only if no enemy is currently in range — otherwise hold position.
         if (enemiesInRange.isEmpty()) {
             moveToward(unit, closestEnemy.position, allUnits, grid, events)
             return
         }
 
+        // On cooldown but already in range — stay still.
+        if (!unit.canAct) return
+
+        val fireball = (unit.type as SpecialUnitType).ability as SpecialAbility.Fireball
+
         // Pick the TARGET TILE (not a unit) that maximises total enemies hit by the 3×3 blast.
-        // Candidates = positions of all in-range enemies. For each candidate tile, count
-        // all enemies whose footprint overlaps the blast radius.
         val bestTile = enemiesInRange.maxByOrNull { candidate ->
             enemies.count { enemy ->
                 enemy.occupiedTiles().any { tile ->
@@ -573,10 +621,7 @@ class GridBattleEngine {
             target.occupiedTiles().any { it in blastTiles }
         }
 
-        if (hitUnits.isEmpty()) {
-            moveToward(unit, closestEnemy.position, allUnits, grid, events)
-            return
-        }
+        if (hitUnits.isEmpty()) return
 
         // Apply damage and record hits.
         val hits = hitUnits.map { target ->
@@ -862,15 +907,15 @@ class GridBattleEngine {
     /**
      * Returns enemies of [unit], with non-structure units first.
      * Structures (Farm) are last-resort targets.
-     * NATURAL units are never in the enemy list of PLAYER/ENEMY — they are neutral.
-     * A NATURAL unit sees all non-NATURAL units as potential targets (handled by processWolf).
+     * PLAYER targets ENEMY + NATURAL; ENEMY targets PLAYER + NATURAL;
+     * NATURAL targets PLAYER + ENEMY (all non-NATURAL).
      */
     private fun getEnemiesOf(unit: BattleUnit, allUnits: List<BattleUnit>): List<BattleUnit> {
         val enemies = when (unit.owner) {
             BattleUnit.Owner.NATURAL ->
                 allUnits.filter { it.isAlive && it.owner != BattleUnit.Owner.NATURAL }
             else ->
-                allUnits.filter { it.isAlive && it.owner != unit.owner && it.owner != BattleUnit.Owner.NATURAL }
+                allUnits.filter { it.isAlive && it.owner != unit.owner }
         }
         return enemies.sortedBy { if (it.type.isStructure) 1 else 0 }
     }
@@ -879,20 +924,20 @@ class GridBattleEngine {
      * Returns the highest-priority target for [unit]:
      * - Non-structure enemies first, by proximity
      * - Falls back to structures only if no other targets remain
-     * - NATURAL units are excluded from PLAYER/ENEMY targeting
+     * PLAYER/ENEMY include NATURAL units as valid targets.
      */
     private fun getPriorityTarget(unit: BattleUnit, allUnits: List<BattleUnit>): BattleUnit? {
         val enemies = when (unit.owner) {
             BattleUnit.Owner.NATURAL ->
                 allUnits.filter { it.isAlive && it.owner != BattleUnit.Owner.NATURAL }
             else ->
-                allUnits.filter { it.isAlive && it.owner != unit.owner && it.owner != BattleUnit.Owner.NATURAL }
+                allUnits.filter { it.isAlive && it.owner != unit.owner }
         }
         val combatTargets = enemies.filter { !it.type.isStructure }
         return if (combatTargets.isNotEmpty())
-            combatTargets.minByOrNull { unit.distanceToPosition(it.position) }
+            combatTargets.minByOrNull { unit.distanceToUnit(it) }
         else
-            enemies.minByOrNull { unit.distanceToPosition(it.position) }
+            enemies.minByOrNull { unit.distanceToUnit(it) }
     }
 
     private fun getAlliesOf(unit: BattleUnit, allUnits: List<BattleUnit>): List<BattleUnit> =

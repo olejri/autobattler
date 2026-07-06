@@ -14,7 +14,9 @@ data class BattleUnit(
     var position: Position,
     var currentHp: Int = type.maxHp,
     var cooldownTimer: Int = 0,
-    var secondaryCooldownTimer: Int = 0
+    var secondaryCooldownTimer: Int = 0,
+    /** Persistent aggro flag — set when a NATURAL unit is awoken; never resets. */
+    var isAggroed: Boolean = false
 ) {
     val isAlive: Boolean get() = currentHp > 0
 
@@ -55,11 +57,23 @@ data class BattleUnit(
     }
 
     /**
-     * Minimum distance from any of this unit's tiles to a target position.
+     * Minimum Chebyshev distance from any tile this unit occupies to any tile [other] occupies.
+     * Correct for both 1×1 and multi-tile units.
      */
-    fun distanceToPosition(pos: Position): Int {
-        return occupiedTiles().minOf { it.distanceTo(pos) }
-    }
+    fun distanceToUnit(other: BattleUnit): Int =
+        occupiedTiles().minOf { myTile ->
+            other.occupiedTiles().minOf { theirTile -> myTile.distanceTo(theirTile) }
+        }
+
+    /** True if any tile of this unit is Chebyshev-adjacent (distance == 1) to any tile of [other]. */
+    fun isAdjacentToUnit(other: BattleUnit): Boolean = distanceToUnit(other) <= 1
+
+    /**
+     * Minimum distance from any of this unit's tiles to a single target position.
+     * Use distanceToUnit() when comparing against another multi-tile unit.
+     */
+    fun distanceToPosition(pos: Position): Int = occupiedTiles().minOf { it.distanceTo(pos) }
+
 
     /** Reset cooldown after performing an action. */
     fun startCooldown() {
