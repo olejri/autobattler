@@ -679,6 +679,7 @@ class SandboxScreen(private val game: AutobattlerGame) : ScreenAdapter() {
         if (unit.type.tier != UnitTier.BRONZE) lines += "Tier: ${unit.type.tier.label}"
         if (unit.type is SpecialUnitType) {
             lines += when (val ab = unit.type.ability) {
+                is SpecialAbility.None      -> ""
                 is SpecialAbility.PlantFarm -> "Ability: Plant Farm"
                 is SpecialAbility.YieldGold -> "Ability: Yields ${ab.goldPerRound}g/round"
                 is SpecialAbility.Fireball  -> "Ability: Fireball (dmg ${ab.power}, r${ab.radius})"

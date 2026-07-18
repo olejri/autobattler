@@ -73,6 +73,22 @@ class BattleGrid(
         return true
     }
 
+    /**
+     * Check line-of-sight for ranged attacks, also considering structure units that block projectiles.
+     * A Tower (blocksProjectiles = true) standing in the path will block the shot.
+     * Wall and Gate do NOT block projectiles (arrows fly over them).
+     */
+    fun hasLineOfSightWithUnits(from: Position, to: Position, units: List<BattleUnit>): Boolean {
+        val points = getLineTiles(from, to)
+        // Skip the first (attacker) and last (target) tiles
+        for (i in 1 until points.size - 1) {
+            if (!isProjectilePassable(points[i])) return false
+            val occupant = units.find { it.isAlive && it.occupies(points[i]) }
+            if (occupant != null && occupant.type.blocksProjectiles) return false
+        }
+        return true
+    }
+
     /** Get all tiles along a line from [from] to [to] using Bresenham's algorithm. */
     private fun getLineTiles(from: Position, to: Position): List<Position> {
         val result = mutableListOf<Position>()

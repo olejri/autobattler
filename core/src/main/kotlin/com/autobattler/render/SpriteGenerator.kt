@@ -52,6 +52,9 @@ object SpriteGenerator {
     private var orcWarriorTexture: Texture? = null
     private var spiderTexture: Texture? = null
     private var dragonTexture: Texture? = null
+    private var wallTexture: Texture? = null
+    private var gateTexture: Texture? = null
+    private var towerTexture: Texture? = null
 
     fun getTexture(type: UnitType): Texture = when (type) {
         is NormalUnitType.Melee              -> warriorTexture           ?: generateWarrior().also { warriorTexture = it }
@@ -86,6 +89,9 @@ object SpriteGenerator {
         is SpecialUnitType.WizardSilver -> wizardSilverTexture ?: generateWizard(UnitTier.SILVER).also { wizardSilverTexture = it }
         is SpecialUnitType.WizardGold -> wizardGoldTexture   ?: generateWizard(UnitTier.GOLD).also { wizardGoldTexture = it }
         is StructureUnitType.Farm      -> farmTexture       ?: generateFarm().also       { farmTexture = it }
+        is StructureUnitType.Wall      -> wallTexture       ?: generateWall().also       { wallTexture = it }
+        is StructureUnitType.Gate      -> gateTexture       ?: generateGate().also       { gateTexture = it }
+        is StructureUnitType.Tower     -> towerTexture      ?: generateTower().also      { towerTexture = it }
     }
 
     fun getCommanderTexture(): Texture =
@@ -103,6 +109,7 @@ object SpriteGenerator {
         goblinTexture?.dispose(); skeletonTexture?.dispose(); darkMageTexture?.dispose()
         trollTexture?.dispose(); banditTexture?.dispose(); orcWarriorTexture?.dispose()
         spiderTexture?.dispose(); dragonTexture?.dispose()
+        wallTexture?.dispose(); gateTexture?.dispose(); towerTexture?.dispose()
         warriorTexture = null; warriorSilverTexture = null; warriorGoldTexture = null
         archerTexture = null; archerSilverTexture = null; archerGoldTexture = null
         clericTexture = null; clericSilverTexture = null; clericGoldTexture = null
@@ -114,6 +121,7 @@ object SpriteGenerator {
         goblinTexture = null; skeletonTexture = null; darkMageTexture = null
         trollTexture = null; banditTexture = null; orcWarriorTexture = null
         spiderTexture = null; dragonTexture = null
+        wallTexture = null; gateTexture = null; towerTexture = null
     }
 
     // ─── Warrior: Shield + Sword ────────────────────────────────────────────────
@@ -449,6 +457,104 @@ object SpriteGenerator {
         drawThickLine(pixmap, 6, SIZE - 6, SIZE - 6, SIZE - 6, 2)
         drawThickLine(pixmap, 6, 6, 6, SIZE - 6, 2)
         drawThickLine(pixmap, SIZE - 6, 6, SIZE - 6, SIZE - 6, 2)
+
+        val texture = Texture(pixmap)
+        texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
+        pixmap.dispose()
+        return texture
+    }
+
+    // ─── Wall: Stone brick barrier ──────────────────────────────────────────────
+
+    private fun generateWall(): Texture {
+        val pixmap = Pixmap(SIZE, SIZE, Pixmap.Format.RGBA8888)
+
+        pixmap.setColor(Color(0.28f, 0.26f, 0.24f, 1f))
+        pixmap.fillCircle(CENTER, CENTER, RADIUS)
+
+        pixmap.setColor(Color(0.42f, 0.38f, 0.34f, 1f))
+        pixmap.fillRectangle(CENTER - RADIUS + 4, CENTER - 10, 16, 7)
+        pixmap.fillRectangle(CENTER - RADIUS + 22, CENTER - 10, 16, 7)
+        pixmap.fillRectangle(CENTER - RADIUS + 4, CENTER - 1, 22, 7)
+        pixmap.fillRectangle(CENTER - RADIUS + 28, CENTER - 1, 10, 7)
+        pixmap.fillRectangle(CENTER - RADIUS + 4, CENTER + 8, 14, 7)
+        pixmap.fillRectangle(CENTER - RADIUS + 20, CENTER + 8, 18, 7)
+
+        pixmap.setColor(Color(0.2f, 0.18f, 0.16f, 1f))
+        pixmap.fillRectangle(CENTER - RADIUS + 4, CENTER - 3, RADIUS * 2 - 8, 2)
+        pixmap.fillRectangle(CENTER - RADIUS + 4, CENTER + 6, RADIUS * 2 - 8, 2)
+        pixmap.fillRectangle(CENTER - RADIUS + 20, CENTER - 10, 2, 7)
+        pixmap.fillRectangle(CENTER - RADIUS + 26, CENTER - 1, 2, 7)
+        pixmap.fillRectangle(CENTER - RADIUS + 18, CENTER + 8, 2, 7)
+
+        pixmap.setColor(Color(0.55f, 0.52f, 0.48f, 1f))
+        drawCircleOutline(pixmap, CENTER, CENTER, RADIUS, 2)
+
+        val texture = Texture(pixmap)
+        texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
+        pixmap.dispose()
+        return texture
+    }
+
+    // ─── Gate: Wooden gate with arch ────────────────────────────────────────────
+
+    private fun generateGate(): Texture {
+        val pixmap = Pixmap(SIZE, SIZE, Pixmap.Format.RGBA8888)
+
+        pixmap.setColor(Color(0.18f, 0.16f, 0.14f, 1f))
+        pixmap.fillCircle(CENTER, CENTER, RADIUS)
+
+        pixmap.setColor(Color(0.38f, 0.34f, 0.30f, 1f))
+        pixmap.fillRectangle(CENTER - 12, CENTER - RADIUS + 6, 6, 28)
+        pixmap.fillRectangle(CENTER + 6, CENTER - RADIUS + 6, 6, 28)
+
+        pixmap.setColor(Color(0.45f, 0.28f, 0.10f, 1f))
+        for (y in 0..3) {
+            pixmap.fillRectangle(CENTER - 10, CENTER - RADIUS + 10 + y * 7, 20, 5)
+        }
+
+        pixmap.setColor(Color(0.35f, 0.20f, 0.08f, 1f))
+        pixmap.fillRectangle(CENTER - 10, CENTER - 2, 20, 3)
+
+        pixmap.setColor(Color(0.4f, 0.4f, 0.45f, 1f))
+        pixmap.fillCircle(CENTER - 8, CENTER - 10, 3)
+        pixmap.fillCircle(CENTER - 8, CENTER + 4, 3)
+
+        pixmap.setColor(Color(0.65f, 0.45f, 0.15f, 1f))
+        drawCircleOutline(pixmap, CENTER, CENTER, RADIUS, 2)
+
+        val texture = Texture(pixmap)
+        texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
+        pixmap.dispose()
+        return texture
+    }
+
+    // ─── Tower: Stone turret ─────────────────────────────────────────────────────
+
+    private fun generateTower(): Texture {
+        val pixmap = Pixmap(SIZE, SIZE, Pixmap.Format.RGBA8888)
+
+        pixmap.setColor(Color(0.15f, 0.14f, 0.12f, 1f))
+        pixmap.fillCircle(CENTER, CENTER, RADIUS)
+
+        pixmap.setColor(Color(0.38f, 0.35f, 0.30f, 1f))
+        pixmap.fillRectangle(CENTER - 12, CENTER - RADIUS + 6, 24, 28)
+
+        pixmap.setColor(Color(0.45f, 0.42f, 0.38f, 1f))
+        pixmap.fillRectangle(CENTER - 12, CENTER - RADIUS + 3, 7, 8)
+        pixmap.fillRectangle(CENTER - 2, CENTER - RADIUS + 3, 7, 8)
+        pixmap.fillRectangle(CENTER + 7, CENTER - RADIUS + 3, 7, 8)
+
+        pixmap.setColor(Color(0.1f, 0.1f, 0.12f, 1f))
+        pixmap.fillRectangle(CENTER - 2, CENTER - 8, 4, 12)
+
+        pixmap.setColor(Color(0.8f, 0.63f, 0.1f, 1f))
+        drawThickLine(pixmap, CENTER, CENTER - 8, CENTER, CENTER - 18, 2)
+        pixmap.setColor(Color(0.88f, 0.88f, 0.88f, 1f))
+        pixmap.fillTriangle(CENTER, CENTER - 20, CENTER - 3, CENTER - 14, CENTER + 3, CENTER - 14)
+
+        pixmap.setColor(Color(0.55f, 0.52f, 0.50f, 1f))
+        drawCircleOutline(pixmap, CENTER, CENTER, RADIUS, 2)
 
         val texture = Texture(pixmap)
         texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)

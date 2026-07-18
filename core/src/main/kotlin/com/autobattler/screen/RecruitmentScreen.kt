@@ -339,6 +339,7 @@ class RecruitmentScreen(private val game: AutobattlerGame) : ScreenAdapter() {
     }
 
     private fun abilityLabel(ability: SpecialAbility): String = when (ability) {
+        is SpecialAbility.None         -> ""
         is SpecialAbility.PlantFarm    -> "* Plants a gold farm"
         is SpecialAbility.Fireball     -> "* Fireball ${ability.power} dmg / ${ability.radius*2+1}x${ability.radius*2+1} AoE"
         is SpecialAbility.YieldGold    -> "$ Yields ${ability.goldPerRound}g/round"

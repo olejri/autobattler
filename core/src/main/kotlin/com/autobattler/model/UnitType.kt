@@ -35,11 +35,17 @@ sealed class UnitType(
     /** Gold cost to permanently recruit this unit type for the Commander's roster. */
     val unlockCost: Int get() = cost * 5
 
-    /** True for [StructureUnitType] — structures are passable and targeted last. */
+    /** True for passive structures; combat structures like [StructureUnitType.Tower] may override this. */
     open val isStructure: Boolean get() = false
     open val tier: UnitTier get() = UnitTier.BRONZE
     open val baseTypeId: String get() = id
     open val canFly: Boolean get() = false
+    /** True if this structure blocks unit movement (Wall, Gate, Tower). */
+    open val blocksMovement: Boolean get() = false
+    /** True if this structure blocks projectiles (Tower only). */
+    open val blocksProjectiles: Boolean get() = false
+    /** True if this structure allows friendly (same-owner) units to pass through (Gate only). */
+    open val allowsFriendlyPassage: Boolean get() = false
 
     companion object {
         val purchasable: List<UnitType>
@@ -50,7 +56,8 @@ sealed class UnitType(
                 SpecialUnitType.Farmer, SpecialUnitType.FarmerSilver, SpecialUnitType.FarmerGold,
                 NormalUnitType.Knight, NormalUnitType.KnightSilver, NormalUnitType.KnightGold,
                 SpecialUnitType.Wizard, SpecialUnitType.WizardSilver, SpecialUnitType.WizardGold,
-                NormalUnitType.GriffinRider, NormalUnitType.GriffinRiderSilver, NormalUnitType.GriffinRiderGold
+                NormalUnitType.GriffinRider, NormalUnitType.GriffinRiderSilver, NormalUnitType.GriffinRiderGold,
+                StructureUnitType.Wall, StructureUnitType.Gate, StructureUnitType.Tower
             )
 
         val all: List<UnitType>
@@ -95,6 +102,9 @@ sealed class UnitType(
             "spider" -> MonsterUnitType.Spider
             "dragon" -> MonsterUnitType.Dragon
             "farm" -> StructureUnitType.Farm
+            "wall" -> StructureUnitType.Wall
+            "gate" -> StructureUnitType.Gate
+            "tower" -> StructureUnitType.Tower
             else -> throw IllegalArgumentException("Unknown unit type: $id")
         }
     }
@@ -274,9 +284,13 @@ sealed class SpecialUnitType(
 sealed class StructureUnitType(
     id: String, displayName: String, maxHp: Int,
     unlockLevel: Int = 99,
-    val ability: SpecialAbility
-) : UnitType(id, displayName, maxHp, power = 0, speed = 0, cooldown = 999,
-             attackRange = 0..0, cost = 0, unlockLevel = unlockLevel) {
+    power: Int = 0,
+    cooldown: Int = 999,
+    attackRange: IntRange = 0..0,
+    cost: Int = 0,
+    val ability: SpecialAbility = SpecialAbility.None
+) : UnitType(id, displayName, maxHp, power = power, speed = 0, cooldown = cooldown,
+             attackRange = attackRange, cost = cost, unlockLevel = unlockLevel) {
 
     override val isStructure: Boolean get() = true
 
@@ -284,6 +298,38 @@ sealed class StructureUnitType(
         "farm", "Farm", maxHp = 1, unlockLevel = 99,
         ability = SpecialAbility.YieldGold(goldPerRound = 20)
     )
+
+    /** Impassable wall — blocks all movement, arrows fly over it. Unlocks at commander level 5. */
+    data object Wall : StructureUnitType(
+        "wall", "Wall", maxHp = 50, unlockLevel = 5, cost = 50
+    ) {
+        override val blocksMovement: Boolean get() = true
+    }
+
+    /**
+     * Gate — blocks enemy movement but friendly (same-owner) units can pass through.
+     * Arrows fly over it. Unlocks at commander level 5.
+     */
+    data object Gate : StructureUnitType(
+        "gate", "Gate", maxHp = 50, unlockLevel = 5, cost = 75
+    ) {
+        override val blocksMovement: Boolean get() = true
+        override val allowsFriendlyPassage: Boolean get() = true
+    }
+
+    /**
+     * Tower — impassable defensive turret. Attacks enemies in 0–4 range.
+     * Blocks both movement and projectiles. Unlocks at commander level 6.
+     */
+    data object Tower : StructureUnitType(
+        "tower", "Tower", maxHp = 20,
+        power = 5, cooldown = 2, attackRange = 0..4,
+        unlockLevel = 6, cost = 100
+    ) {
+        override val isStructure: Boolean get() = false
+        override val blocksMovement: Boolean get() = true
+        override val blocksProjectiles: Boolean get() = true
+    }
 }
 
 sealed class MonsterUnitType(

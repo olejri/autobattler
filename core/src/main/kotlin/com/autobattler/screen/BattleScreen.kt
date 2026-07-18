@@ -795,12 +795,13 @@ class BattleScreen(
 
         if (unit.type is SpecialUnitType) {
             val abilityDesc = when (val ab = unit.type.ability) {
+                is SpecialAbility.None       -> ""
                 is SpecialAbility.PlantFarm  -> "Ability: Plant Farm"
                 is SpecialAbility.YieldGold  -> "Ability: Yields ${ab.goldPerRound}g/round"
                 is SpecialAbility.Fireball   -> "Ability: Fireball (dmg ${ab.power}, r${ab.radius})"
                 is SpecialAbility.Flying     -> "Ability: Flying"
             }
-            lines += abilityDesc
+            if (abilityDesc.isNotEmpty()) lines += abilityDesc
         }
         if (unit.type is StructureUnitType) {
             val abilityDesc = when (val ab = unit.type.ability) {
@@ -957,7 +958,9 @@ class BattleScreen(
                     is SpecialUnitType.Farmer, is SpecialUnitType.FarmerSilver, is SpecialUnitType.FarmerGold -> {}
                     is SpecialUnitType.Wizard, is SpecialUnitType.WizardSilver, is SpecialUnitType.WizardGold ->
                         { battleEffects.addArrow(ax, ay, tx, ty); SoundGenerator.getArrowShot().play(0.55f) }
-                    is StructureUnitType.Farm -> {}
+                    is StructureUnitType.Farm, is StructureUnitType.Wall, is StructureUnitType.Gate -> {}
+                    is StructureUnitType.Tower ->
+                        { battleEffects.addArrow(ax, ay, tx, ty); SoundGenerator.getArrowShot().play(0.5f) }
                 }
             }
             is BattleEvent.Heal -> {

@@ -80,7 +80,10 @@ class GridBattleEngine {
                     is MonsterUnitType.Dragon      -> processDragon(unit, simUnits, grid, events)
                     is SpecialUnitType.Farmer, is SpecialUnitType.FarmerSilver, is SpecialUnitType.FarmerGold -> processFarmer(unit, simUnits, grid, events)
                     is SpecialUnitType.Wizard, is SpecialUnitType.WizardSilver, is SpecialUnitType.WizardGold -> processWizard(unit, simUnits, grid, events)
-                    is StructureUnitType.Farm  -> { /* passive */ }
+                    is StructureUnitType.Farm  -> { /* passive — gold generation handled above */ }
+                    is StructureUnitType.Wall  -> { /* passive — blocks movement */ }
+                    is StructureUnitType.Gate  -> { /* passive — blocks enemy movement */ }
+                    is StructureUnitType.Tower -> processTower(unit, simUnits, grid, events)
                 }
             }
 
@@ -149,7 +152,7 @@ class GridBattleEngine {
         // If already adjacent to any combat target, attack it immediately.
         combatTargets.find { unit.isAdjacentToUnit(it) }?.let { return it }
 
-        return combatTargets.minByOrNull { enemy ->
+        val bestCombatTarget = combatTargets.minByOrNull { enemy ->
             val flank = pickFlankPosition(unit, enemy, allUnits, grid)
                 ?: return@minByOrNull 0   // already adjacent — score 0 (best)
             val ghost = findPathOntoIgnoringAllies(unit, flank, allUnits, grid)
@@ -164,6 +167,19 @@ class GridBattleEngine {
             }
             ghost.size + if (firstStepBlocked) 500 else 0
         }
+
+        // If the chosen combat target is completely unreachable (all paths blocked — e.g. by a Wall),
+        // break down the nearest blocking structure instead of standing idle.
+        // Multiple attackers will converge on the same nearest structure, killing it faster.
+        if (bestCombatTarget != null && !unit.isAdjacentToUnit(bestCombatTarget)) {
+            val flank = pickFlankPosition(unit, bestCombatTarget, allUnits, grid)
+            if (flank == null || findPathOntoIgnoringAllies(unit, flank, allUnits, grid).isEmpty()) {
+                enemies.filter { it.type.blocksMovement }
+                    .minByOrNull { unit.distanceToUnit(it) }
+                    ?.let { return it }
+            }
+        }
+        return bestCombatTarget
     }
 
     /**
@@ -255,8 +271,9 @@ class GridBattleEngine {
         val unitSize = movingUnit.size
         val occupied = mutableSetOf<Position>()
         for (other in allUnits) {
-            if (!other.isAlive || other.id == movingUnit.id || other.type.isStructure) continue
-            if (movingUnit.type.canFly && other.owner == movingUnit.owner) continue
+            if (!other.isAlive || other.id == movingUnit.id) continue
+            if (other.type is StructureUnitType && !blocksMovementFor(other, movingUnit)) continue
+            if (other.type !is StructureUnitType && movingUnit.type.canFly && other.owner == movingUnit.owner) continue
             occupied.addAll(other.occupiedTiles())
         }
 
@@ -290,7 +307,11 @@ class GridBattleEngine {
         val unitSize = movingUnit.size
         val enemyOcc = mutableSetOf<Position>()
         for (other in allUnits) {
-            if (!other.isAlive || other.id == movingUnit.id || other.type.isStructure) continue
+            if (!other.isAlive || other.id == movingUnit.id) continue
+            if (other.type is StructureUnitType) {
+                if (blocksMovementFor(other, movingUnit)) enemyOcc.addAll(other.occupiedTiles())
+                continue
+            }
             if (other.owner == movingUnit.owner) continue  // skip allies
             enemyOcc.addAll(other.occupiedTiles())
         }
@@ -505,7 +526,7 @@ class GridBattleEngine {
         // A real (non-structure) target in range with clear LOS
         val combatTargetInRange = combatEnemies.find {
             unit.position.distanceTo(it.position) in unit.type.attackRange
-                && grid.hasLineOfSight(unit.position, it.position)
+                && grid.hasLineOfSightWithUnits(unit.position, it.position, allUnits)
         }
 
         when {
@@ -517,7 +538,7 @@ class GridBattleEngine {
         // After optional move: shoot best available target (structures as last resort)
         val shootTarget = enemies.find {
             unit.position.distanceTo(it.position) in unit.type.attackRange
-                && grid.hasLineOfSight(unit.position, it.position)
+                && grid.hasLineOfSightWithUnits(unit.position, it.position, allUnits)
         }
         if (unit.canAct && shootTarget != null) {
             performAttack(unit, shootTarget, events)
@@ -642,6 +663,21 @@ class GridBattleEngine {
         unit.startCooldown()
     }
 
+    // ─── TOWER ──────────────────────────────────────────────────────────────────
+
+    private fun processTower(unit: BattleUnit, allUnits: List<BattleUnit>, grid: BattleGrid, events: MutableList<BattleEvent>) {
+        if (!unit.canAct) return
+        val enemies = getEnemiesOf(unit, allUnits).filter { !it.type.isStructure }
+        val target = enemies
+            .filter {
+                unit.distanceToUnit(it) in unit.type.attackRange &&
+                    grid.hasLineOfSightWithUnits(unit.position, it.position, allUnits)
+            }
+            .minByOrNull { unit.distanceToUnit(it) }
+            ?: return
+        performAttack(unit, target, events)
+    }
+
     // ─── Movement ────────────────────────────────────────────────────────────────
 
     private fun moveToward(unit: BattleUnit, target: Position, allUnits: List<BattleUnit>, grid: BattleGrid, events: MutableList<BattleEvent>) {
@@ -687,8 +723,11 @@ class GridBattleEngine {
         val enemyOccupied = mutableSetOf<Position>()
         for (other in allUnits) {
             if (!other.isAlive || other.id == movingUnit.id) continue
-            if (other.type.isStructure) continue
-            if (other.owner == movingUnit.owner) continue  // friendlies are transparent
+            if (other.type is StructureUnitType) {
+                if (blocksMovementFor(other, movingUnit)) enemyOccupied.addAll(other.occupiedTiles())
+                continue
+            }
+            if (other.owner == movingUnit.owner) continue  // regular allies are transparent
             enemyOccupied.addAll(other.occupiedTiles())
         }
 
@@ -745,8 +784,8 @@ class GridBattleEngine {
         val occupiedByOthers = mutableSetOf<Position>()
         for (other in allUnits) {
             if (!other.isAlive || other.id == movingUnit.id) continue
-            if (other.type.isStructure) continue  // structures are passable — units walk through them
-            if (movingUnit.type.canFly && other.owner == movingUnit.owner) continue
+            if (other.type is StructureUnitType && !blocksMovementFor(other, movingUnit)) continue
+            if (other.type !is StructureUnitType && movingUnit.type.canFly && other.owner == movingUnit.owner) continue
             occupiedByOthers.addAll(other.occupiedTiles())
         }
 
@@ -797,8 +836,8 @@ class GridBattleEngine {
         val occupiedByOthers = mutableSetOf<Position>()
         for (other in allUnits) {
             if (!other.isAlive || other.id == unit.id) continue
-            if (other.type.isStructure) continue  // structures are passable — can flee through them
-            if (unit.type.canFly && other.owner == unit.owner) continue
+            if (other.type is StructureUnitType && !blocksMovementFor(other, unit)) continue
+            if (other.type !is StructureUnitType && unit.type.canFly && other.owner == unit.owner) continue
             occupiedByOthers.addAll(other.occupiedTiles())
         }
         return getCardinalNeighbors(unit.position)
@@ -809,6 +848,19 @@ class GridBattleEngine {
                 }}
             }
             .maxByOrNull { it.manhattanDistance(threat) }
+    }
+
+    /**
+     * Returns true if [obstacle] blocks movement for [mover].
+     * - Non-blocking structures (Farm): never block
+     * - Gate (allowsFriendlyPassage): blocks enemies but not allies
+     * - Wall, Tower: always block
+     * - Regular non-structure units: handled separately (not via this helper)
+     */
+    private fun blocksMovementFor(obstacle: BattleUnit, mover: BattleUnit): Boolean {
+        if (!obstacle.type.blocksMovement) return false
+        if (obstacle.type.allowsFriendlyPassage && obstacle.owner == mover.owner) return false
+        return true
     }
 
     private fun getCardinalNeighbors(pos: Position): List<Position> =
