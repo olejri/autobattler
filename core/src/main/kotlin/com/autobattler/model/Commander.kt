@@ -28,7 +28,9 @@ data class Commander(
     val currentLevel: Int = 1,
     val completedBattleIds: List<String> = emptyList(),
     val currentDay: Int = 1,
-    val saveVersion: Int = 1
+    val saveVersion: Int = 1,
+    /** Units permanently stationed at the camp, defending during bandit ambushes. */
+    val campUnits: List<CampUnit> = emptyList()
 ) {
     /** e.g. "1-3" */
     val battleId: String get() = "$currentWorld-$currentLevel"
@@ -146,4 +148,32 @@ data class Commander(
 
     /** Checks whether a specific battle has been completed before. */
     fun hasCompleted(world: Int, level: Int) = "$world-$level" in completedBattleIds
+
+    /** Returns a new Commander with the given [units] replacing the camp roster. */
+    fun withCampUnits(units: List<CampUnit>): Commander = copy(campUnits = units)
+
+    /**
+     * Returns a new Commander state after a camp ambush battle.
+     * Updates XP, gold, and the camp roster (only [survivingCampUnits] remain).
+     * HP of surviving units is conceptually restored to full — they always enter the next
+     * ambush at full strength; the persistence concern is only alive-vs-dead.
+     *
+     * @param xpReward          XP earned (0 on defeat)
+     * @param goldEarned        Gold earned from kills + bonus (0 on defeat)
+     * @param survivingCampUnits Camp units that were still alive at battle end
+     */
+    fun afterCampAmbush(xpReward: Int, goldEarned: Int, survivingCampUnits: List<CampUnit>): Commander {
+        var lvl = level
+        var remainingXp = xp + xpReward
+        while (remainingXp >= lvl * 100) {
+            remainingXp -= lvl * 100
+            lvl++
+        }
+        return copy(
+            level = lvl,
+            xp = remainingXp,
+            gold = gold + goldEarned,
+            campUnits = survivingCampUnits
+        )
+    }
 }

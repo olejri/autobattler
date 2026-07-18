@@ -41,7 +41,12 @@ class BattleScreen(
     private val scenario: ScenarioDefinition,
     private val commander: Commander? = null,
     private val boughtRoster: List<UnitType>? = null,  // null = buy phase active
-    private val onBattleEnd: (() -> Unit)? = null      // sandbox: called instead of going to menu
+    private val onBattleEnd: (() -> Unit)? = null,     // sandbox: called instead of going to menu
+    /**
+     * When non-null, this is a camp ambush: the listed units were pre-placed from the camp
+     * and the screen must track which survive to update Commander.campUnits afterwards.
+     */
+    private val campUnits: List<CampUnit>? = null
 ) : ScreenAdapter() {
 
     private enum class Phase { SETUP, BATTLE, RESULT }
@@ -112,6 +117,9 @@ class BattleScreen(
 
     /** Units the player has placed (to allow removal/refund). */
     private val placedPlayerUnitIds = mutableListOf<Int>()
+
+    /** Maps camp unit index → BattleUnit ID for survival tracking in camp ambushes. */
+    private val campUnitIdByIndex = mutableMapOf<Int, Int>()
 
     private var nextUnitId = 1
 
@@ -201,11 +209,16 @@ class BattleScreen(
 
         // Sandbox: pre-place player and natural units, then go straight to battle
         if (scenario.playerPlacements != null) {
-            for ((type, pos) in scenario.playerPlacements) {
+            for ((idx, placement) in scenario.playerPlacements.withIndex()) {
+                val (type, pos) = placement
                 val unit = BattleUnit(id = nextUnitId++, type = type, owner = BattleUnit.Owner.PLAYER, position = pos)
                 grid.placeUnit(unit)
                 registerUnit(unit)
                 placedPlayerUnitIds.add(unit.id)
+                // Track camp unit index → unit ID so we can detect survivors after the battle
+                if (campUnits != null && idx < campUnits.size) {
+                    campUnitIdByIndex[idx] = unit.id
+                }
             }
             for ((type, pos) in scenario.naturalPlacements.orEmpty()) {
                 val unit = BattleUnit(id = nextUnitId++, type = type, owner = BattleUnit.Owner.NATURAL, position = pos)
@@ -721,13 +734,29 @@ class BattleScreen(
                 .count { allUnitsById[it.unitId]?.owner == BattleUnit.Owner.ENEMY }
 
             // Compute updated commander now, but only commit when player clicks Continue
-            if (battleOutcome?.winner == BattleOutcome.Winner.PLAYER && commander != null) {
+            if (commander != null) {
                 val goldSpent  = initialGold - gold
                 val goldEarned = enemyKillCount * GOLD_PER_KILL + scenario.goldReward + farmGoldEarned
-                updatedCommander = if (scenario.progressesCampaign) {
-                    commander.afterVictory(scenario.xpReward, goldEarned, goldSpent)
-                } else {
-                    commander.afterBattleReward(scenario.xpReward, goldEarned, goldSpent)
+
+                if (campUnits != null) {
+                    // Camp ambush — always compute result so camp unit survival is tracked.
+                    // Survivors are camp units whose corresponding BattleUnit is NOT in deadUnits.
+                    val survivingCampUnits = campUnits.filterIndexed { idx, _ ->
+                        val uid = campUnitIdByIndex[idx]
+                        uid != null && uid !in deadUnits
+                    }
+                    val won = battleOutcome?.winner == BattleOutcome.Winner.PLAYER
+                    updatedCommander = commander.afterCampAmbush(
+                        xpReward          = if (won) scenario.xpReward else 0,
+                        goldEarned        = if (won) goldEarned else enemyKillCount * GOLD_PER_KILL,
+                        survivingCampUnits = survivingCampUnits
+                    )
+                } else if (battleOutcome?.winner == BattleOutcome.Winner.PLAYER) {
+                    updatedCommander = if (scenario.progressesCampaign) {
+                        commander.afterVictory(scenario.xpReward, goldEarned, goldSpent)
+                    } else {
+                        commander.afterBattleReward(scenario.xpReward, goldEarned, goldSpent)
+                    }
                 }
             }
             rebuildUI()
@@ -1063,6 +1092,59 @@ class BattleScreen(
                 table.add(TextButton(resultText, skin)).width(200f).height(55f).pad(8f).row()
 
                 if (commander != null) {
+                    if (campUnits != null) {
+                        // ── Camp ambush mode ───────────────────────────────────────────
+                        // updatedCommander always computed (win or lose) — it contains
+                        // the updated camp roster (dead units removed, survivors kept).
+                        val next = updatedCommander!!
+                        val survivorCount = next.campUnits.size
+                        val lostCount = campUnits.size - survivorCount
+
+                        // Camp status
+                        table.add(TextButton(
+                            "Camp survivors: $survivorCount / ${campUnits.size}   (lost: $lostCount)",
+                            skin
+                        )).width(360f).height(36f).pad(4f).row()
+
+                        if (won) {
+                            table.add(TextButton(
+                                "${enemyKillCount} kills  +${enemyKillCount * GOLD_PER_KILL}g   bonus +${scenario.goldReward}g   +${scenario.xpReward} XP",
+                                skin
+                            )).width(360f).height(36f).pad(4f).row()
+                            val leveledUp = next.level > commander.level
+                            if (leveledUp) {
+                                table.add(TextButton("⬆ Level ${next.level}!", skin))
+                                    .width(200f).height(36f).pad(4f).row()
+                            }
+                        } else {
+                            val killGold = enemyKillCount * GOLD_PER_KILL
+                            table.add(TextButton(
+                                "Kill gold: +${killGold}g   (no victory bonus on defeat)",
+                                skin
+                            )).width(360f).height(36f).pad(4f).row()
+                        }
+
+                        // CONTINUE always available — commits surviving camp units
+                        val continueBtn = TextButton("CONTINUE", skin)
+                        continueBtn.addListener(object : ClickListener() {
+                            override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                                game.commander = next
+                                game.saveManager.save(next)
+                                game.screen = CampaignScreen(game)
+                            }
+                        })
+                        table.add(continueBtn).width(200f).height(55f).pad(8f).row()
+
+                        // RETRY — replays camp ambush with the original camp (all units at full HP)
+                        val retryBtn = TextButton("RETRY", skin)
+                        retryBtn.addListener(object : ClickListener() {
+                            override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                                game.screen = BattleScreen(game, scenario, commander, campUnits = campUnits)
+                            }
+                        })
+                        table.add(retryBtn).width(200f).height(45f).pad(8f)
+
+                    } else {
                     // ── Campaign mode ──────────────────────────────────────────────
                     if (won) {
                         val next      = updatedCommander!!
@@ -1123,7 +1205,7 @@ class BattleScreen(
                         }
                     })
                     table.add(retreatBtn).width(200f).height(45f).pad(8f)
-
+                    } // end campaign mode else-block
                 } else {
                     // ── Tutorial / standalone / sandbox mode ──────────────────────
                     val hasNext = tutorialIndex in 0 until Scenarios.tutorialSequence.size - 1

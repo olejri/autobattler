@@ -1,7 +1,6 @@
 ﻿package com.autobattler.engine
 
 import com.autobattler.model.*
-
 /**
  * Defines pre-built PvE scenarios for the tutorial and campaign.
  */
@@ -310,10 +309,14 @@ object Scenarios {
      * A surprise bandit raid on the camp, scaled to [commanderLevel].
      * Triggered with [Commander.AMBUSH_CHANCE_PCT]% probability when the commander does labor.
      *
+     * When [campUnits] is non-empty, those units are pre-placed on the player side and the
+     * player does NOT get a buy phase — the camp defends itself as configured.
+     * When [campUnits] is empty, the player gets a full gold budget to buy defenders on the fly.
+     *
      * [progressesCampaign] is false — winning this battle only awards XP/gold,
      * it does NOT advance the world/level tracker.
      */
-    fun ambushBattle(commanderLevel: Int = 1): ScenarioDefinition {
+    fun ambushBattle(commanderLevel: Int = 1, campUnits: List<CampUnit> = emptyList()): ScenarioDefinition {
         // Scale up enemy roster based on commander level
         val enemies = buildList {
             // Base bandit squad (always present)
@@ -346,9 +349,24 @@ object Scenarios {
         val xp = 40 + commanderLevel * 8
         val gold = 80 + commanderLevel * 20
 
+        // When the commander has pre-placed camp units, convert them to playerPlacements
+        // and give NO buy budget — the camp fights as configured.
+        // When the camp is empty, give a full gold budget so the player can buy defenders on the fly.
+        val preplacedUnits: List<Pair<UnitType, Position>>? = if (campUnits.isNotEmpty()) {
+            campUnits.mapNotNull { cu ->
+                runCatching { UnitType.fromId(cu.typeId) }.getOrNull()
+                    ?.let { type -> type to Position(cu.gridX, cu.gridY) }
+            }
+        } else null
+
+        val campDesc = when {
+            campUnits.isNotEmpty() -> "Your camp garrison defends!\n${campUnits.size} unit(s) on guard.\n"
+            else -> "No camp garrison — spend your gold on defenders!\n"
+        }
+
         return ScenarioDefinition(
             name = "* Bandit Ambush!  (Day Raiders — Lv.$commanderLevel)",
-            description = "Bandits raid your camp while you rest!\nDefend yourself — they attack from multiple sides.\n\n" +
+            description = "Bandits raid your camp while you rest!\n$campDesc\n" +
                 "⚠  Survive to keep your labor gold.\n" +
                 (if (commanderLevel >= 3) "• Archers in the treeline!\n" else "") +
                 (if (commanderLevel >= 5) "• Orc enforcers spotted!\n" else "") +
@@ -357,6 +375,7 @@ object Scenarios {
             mapPath = "maps/ambush_bandit_camp.json",
             startingGold = 0,
             enemyPlacements = enemies,
+            playerPlacements = preplacedUnits,
             xpReward = xp,
             goldReward = gold,
             progressesCampaign = false   // does NOT advance world/level tracker

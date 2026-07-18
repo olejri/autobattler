@@ -292,6 +292,16 @@ class CampaignScreen(private val game: AutobattlerGame) : ScreenAdapter() {
         })
         btnRow.add(recruitBtn).width(230f).height(52f).padRight(16f)
 
+        // Build Camp button — manage permanent camp defenders
+        val campLabel = if (commander.campUnits.isEmpty()) "BUILD CAMP" else "MANAGE CAMP  (${commander.campUnits.size})"
+        val campBtn = TextButton(campLabel, skin, "camp")
+        campBtn.addListener(object : ClickListener() {
+            override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                game.screen = BuildModeScreen(game)
+            }
+        })
+        btnRow.add(campBtn).width(240f).height(52f).padRight(16f)
+
         // Work for Hire (pass day + earn gold, ambush chance) — label shows level-scaled gold
         val laborGold = commander.laborGold
         val laborBtn = TextButton("WORK FOR HIRE  +${laborGold}g", skin, "labor")
@@ -311,17 +321,24 @@ class CampaignScreen(private val game: AutobattlerGame) : ScreenAdapter() {
         btnRow.add(menuBtn).width(180f).height(46f)
         infoArea.add(btnRow).left().padTop(4f).row()
 
-        // Hint — show level-scaled labor gold amount
+        // Hint — show level-scaled labor gold amount, and camp status
+        val campHint = if (commander.campUnits.isEmpty())
+            "  ⚠ Camp is empty — buy defenders in Build Camp to auto-defend ambushes!"
+        else
+            "  Camp: ${commander.campUnits.size} defender(s) on guard."
         infoArea.add(Label(
-            "Each action (mission or labor) advances the day.  Labor earns ${commander.laborGold}g (level×100).  ${Commander.AMBUSH_CHANCE_PCT}% ambush chance!",
+            "Each action (mission or labor) advances the day.  Labor earns ${commander.laborGold}g (level×100).  ${Commander.AMBUSH_CHANCE_PCT}% ambush chance!$campHint",
             skin, "small"
         )).left().padTop(6f).row()
     }
 
     /**
      * Spend a day doing labor: award gold, advance day, then check for ambush.
-     * If an ambush triggers, send the commander into the bandit battle immediately.
-     * On return from the ambush battle, the campaign screen reopens with updated state.
+     *
+     * When an ambush triggers:
+     * - If the camp has pre-placed defenders → they fight automatically (no buy phase).
+     *   BattleScreen receives the campUnits so it can track survival after the fight.
+     * - If the camp is empty → player gets their gold as a buy budget (existing behavior).
      */
     private fun doLaborDay(commander: Commander) {
         val afterLabor = commander.afterLabor()
@@ -330,13 +347,20 @@ class CampaignScreen(private val game: AutobattlerGame) : ScreenAdapter() {
 
         val roll = (1..100).random()
         if (roll <= Commander.AMBUSH_CHANCE_PCT) {
-            // Ambush! Scale difficulty to commander level, give them their gold as battle budget
-            val ambushScenario = Scenarios.ambushBattle(afterLabor.level)
-            val ambushWithBudget = ambushScenario.copy(startingGold = afterLabor.gold)
+            val campUnits = afterLabor.campUnits
+            val ambushScenario = Scenarios.ambushBattle(afterLabor.level, campUnits)
+            // Camp has defenders: go straight to battle (no buy phase, no extra gold budget)
+            // Camp is empty: give gold budget for on-the-fly hiring
+            val finalScenario = if (campUnits.isEmpty()) {
+                ambushScenario.copy(startingGold = afterLabor.gold)
+            } else {
+                ambushScenario  // playerPlacements already set; startingGold = 0
+            }
             game.screen = BattleScreen(
                 game = game,
-                scenario = ambushWithBudget,
-                commander = afterLabor
+                scenario = finalScenario,
+                commander = afterLabor,
+                campUnits = if (campUnits.isNotEmpty()) campUnits else null
             )
         } else {
             // No ambush — just refresh
@@ -444,6 +468,12 @@ class CampaignScreen(private val game: AutobattlerGame) : ScreenAdapter() {
             over = skin.newDrawable("white", Color(0.45f, 0.38f, 0.12f, 1f))
             down = skin.newDrawable("white", Color(0.2f,  0.18f, 0.05f, 1f))
             font = btnFont; fontColor = Color(1f, 0.88f, 0.4f, 1f)
+        })
+        skin.add("camp", TextButton.TextButtonStyle().apply {
+            up   = skin.newDrawable("white", Color(0.18f, 0.28f, 0.18f, 1f))
+            over = skin.newDrawable("white", Color(0.26f, 0.42f, 0.26f, 1f))
+            down = skin.newDrawable("white", Color(0.12f, 0.18f, 0.12f, 1f))
+            font = btnFont; fontColor = Color(0.7f, 1f, 0.7f, 1f)
         })
         skin.add("worldTab", TextButton.TextButtonStyle().apply {
             up   = skin.newDrawable("white", Color(0.18f, 0.18f, 0.24f, 1f))
