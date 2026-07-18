@@ -48,6 +48,45 @@ sealed class UnitType(
     open val allowsFriendlyPassage: Boolean get() = false
 
     companion object {
+
+        val idToUnitTypeMap: Map<String, UnitType> = mapOf(
+        "melee" to NormalUnitType.Melee,
+        "melee_silver" to NormalUnitType.MeleeSilver,
+        "melee_gold" to NormalUnitType.MeleeGold,
+        "ranged" to NormalUnitType.Ranged,
+        "ranged_silver" to NormalUnitType.RangedSilver,
+        "ranged_gold" to NormalUnitType.RangedGold,
+        "healer" to NormalUnitType.Healer,
+        "healer_silver" to NormalUnitType.HealerSilver,
+        "healer_gold" to NormalUnitType.HealerGold,
+        "knight" to NormalUnitType.Knight,
+        "knight_silver" to NormalUnitType.KnightSilver,
+        "knight_gold" to NormalUnitType.KnightGold,
+        "griffin_rider" to NormalUnitType.GriffinRider,
+        "griffin_rider_silver" to NormalUnitType.GriffinRiderSilver,
+        "griffin_rider_gold" to NormalUnitType.GriffinRiderGold,
+        "farmer" to SpecialUnitType.Farmer,
+        "farmer_silver" to SpecialUnitType.FarmerSilver,
+        "farmer_gold" to SpecialUnitType.FarmerGold,
+        "wizard" to SpecialUnitType.Wizard,
+        "wizard_silver" to SpecialUnitType.WizardSilver,
+        "wizard_gold" to SpecialUnitType.WizardGold,
+        "bear" to MonsterUnitType.Bear,
+        "wolf" to MonsterUnitType.Wolf,
+        "goblin" to MonsterUnitType.Goblin,
+        "skeleton" to MonsterUnitType.Skeleton,
+        "dark_mage" to MonsterUnitType.DarkMage,
+        "troll" to MonsterUnitType.Troll,
+        "bandit" to MonsterUnitType.Bandit,
+        "orc_warrior" to MonsterUnitType.OrcWarrior,
+        "spider" to MonsterUnitType.Spider,
+        "dragon" to MonsterUnitType.Dragon,
+        "farm" to StructureUnitType.Farm,
+        "wall" to StructureUnitType.Wall,
+        "gate" to StructureUnitType.Gate,
+        "tower" to StructureUnitType.Tower,
+        )
+
         val purchasable: List<UnitType>
             get() = listOf(
                 NormalUnitType.Melee, NormalUnitType.MeleeSilver, NormalUnitType.MeleeGold,
@@ -69,44 +108,7 @@ sealed class UnitType(
                 MonsterUnitType.Spider, MonsterUnitType.Dragon
             )
 
-        fun fromId(id: String): UnitType = when (id) {
-            "melee" -> NormalUnitType.Melee
-            "melee_silver" -> NormalUnitType.MeleeSilver
-            "melee_gold" -> NormalUnitType.MeleeGold
-            "ranged" -> NormalUnitType.Ranged
-            "ranged_silver" -> NormalUnitType.RangedSilver
-            "ranged_gold" -> NormalUnitType.RangedGold
-            "healer" -> NormalUnitType.Healer
-            "healer_silver" -> NormalUnitType.HealerSilver
-            "healer_gold" -> NormalUnitType.HealerGold
-            "knight" -> NormalUnitType.Knight
-            "knight_silver" -> NormalUnitType.KnightSilver
-            "knight_gold" -> NormalUnitType.KnightGold
-            "griffin_rider" -> NormalUnitType.GriffinRider
-            "griffin_rider_silver" -> NormalUnitType.GriffinRiderSilver
-            "griffin_rider_gold" -> NormalUnitType.GriffinRiderGold
-            "farmer" -> SpecialUnitType.Farmer
-            "farmer_silver" -> SpecialUnitType.FarmerSilver
-            "farmer_gold" -> SpecialUnitType.FarmerGold
-            "wizard" -> SpecialUnitType.Wizard
-            "wizard_silver" -> SpecialUnitType.WizardSilver
-            "wizard_gold" -> SpecialUnitType.WizardGold
-            "bear" -> MonsterUnitType.Bear
-            "wolf" -> MonsterUnitType.Wolf
-            "goblin" -> MonsterUnitType.Goblin
-            "skeleton" -> MonsterUnitType.Skeleton
-            "dark_mage" -> MonsterUnitType.DarkMage
-            "troll" -> MonsterUnitType.Troll
-            "bandit" -> MonsterUnitType.Bandit
-            "orc_warrior" -> MonsterUnitType.OrcWarrior
-            "spider" -> MonsterUnitType.Spider
-            "dragon" -> MonsterUnitType.Dragon
-            "farm" -> StructureUnitType.Farm
-            "wall" -> StructureUnitType.Wall
-            "gate" -> StructureUnitType.Gate
-            "tower" -> StructureUnitType.Tower
-            else -> throw IllegalArgumentException("Unknown unit type: $id")
-        }
+        fun fromId(id: String): UnitType = idToUnitTypeMap[id] ?: throw IllegalArgumentException("Unknown unit type: $id")
     }
 }
 
