@@ -8,6 +8,7 @@ import com.autobattler.render.Fonts
 import com.autobattler.render.SoundGenerator
 import com.autobattler.render.SpriteGenerator
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.Input
 import com.badlogic.gdx.InputMultiplexer
 import com.badlogic.gdx.ScreenAdapter
 import com.badlogic.gdx.graphics.Color
@@ -150,6 +151,13 @@ class BattleScreen(
     private var animTo = Vector2()
     private var animProgress = 0f
 
+    // ─── Tooltip state ───────────────────────────────────────────────────────────
+    private var tooltipVisible = false
+    private var tooltipTitle = ""
+    private var tooltipLines = listOf<String>()
+    private var tooltipAnchorX = 0f
+    private var tooltipAnchorY = 0f
+
     // ─── Flash effects ──────────────────────────────────────────────────────────
     private var flashUnitId = -1
     private var flashTimer = 0f
@@ -280,6 +288,8 @@ class BattleScreen(
         }
 
         drawHUD()
+
+        if (tooltipVisible) drawTooltip()
 
         stage.act(delta)
         stage.draw()
@@ -678,6 +688,141 @@ class BattleScreen(
 
     // ─── Battle animation ────────────────────────────────────────────────────────
 
+    // ─── Tooltip drawing ─────────────────────────────────────────────────────────
+
+    private fun drawTooltip() {
+        val padding = 10f
+        val lineHeight = 17f
+        val titleHeight = 22f
+        val totalLines = tooltipLines.size
+        val boxW = 200f
+        val boxH = padding * 2 + titleHeight + (if (totalLines > 0) 4f + totalLines * lineHeight else 0f)
+
+        // Anchor slightly above and to the right of the clicked tile
+        var bx = tooltipAnchorX + 6f
+        var by = tooltipAnchorY + 6f
+
+        // Clamp so tooltip stays on screen
+        val screenW = Gdx.graphics.width.toFloat()
+        val screenH = Gdx.graphics.height.toFloat()
+        if (bx + boxW > screenW - 4f) bx = tooltipAnchorX - boxW - 6f
+        if (by + boxH > screenH - 4f) by = tooltipAnchorY - boxH - 6f
+        if (bx < 4f) bx = 4f
+        if (by < 4f) by = 4f
+
+        // Background + border
+        Gdx.gl.glEnable(GL20.GL_BLEND)
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
+        shapeRenderer.color = Color(0.04f, 0.06f, 0.08f, 0.93f)
+        shapeRenderer.rect(bx, by, boxW, boxH)
+        shapeRenderer.end()
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line)
+        shapeRenderer.color = Color(0.55f, 0.65f, 0.75f, 0.9f)
+        shapeRenderer.rect(bx, by, boxW, boxH)
+        shapeRenderer.end()
+        Gdx.gl.glDisable(GL20.GL_BLEND)
+
+        batch.begin()
+        // Title
+        font.color = Color(0.9f, 0.85f, 0.5f, 1f)
+        font.draw(batch, tooltipTitle, bx + padding, by + boxH - padding)
+
+        // Detail lines
+        var lineY = by + boxH - padding - titleHeight - 4f
+        for (line in tooltipLines) {
+            font.color = Color(0.82f, 0.82f, 0.88f, 1f)
+            font.draw(batch, line, bx + padding, lineY)
+            lineY -= lineHeight
+        }
+        batch.end()
+    }
+
+    private fun showTileTooltip(tile: TileType, anchorX: Float, anchorY: Float) {
+        tooltipTitle = tile.displayName
+        val lines = mutableListOf<String>()
+
+        if (!tile.passable) {
+            lines += "Impassable — blocks movement"
+        } else {
+            when (tile.moveCost) {
+                1    -> lines += "Normal movement"
+                2    -> lines += "Slow (×2 move cost)"
+                3    -> lines += "Very slow (×3 move cost)"
+                else -> lines += "Move cost: ${tile.moveCost}"
+            }
+        }
+
+        if (!tile.projectilePassable) lines += "Blocks projectiles (cover)"
+        if (!tile.placeable && tile.passable) lines += "Cannot place units here"
+
+        tooltipLines = lines
+        tooltipAnchorX = anchorX
+        tooltipAnchorY = anchorY
+        tooltipVisible = true
+    }
+
+    private fun showUnitTooltip(unit: BattleUnit, anchorX: Float, anchorY: Float) {
+        val ownerLabel = when (unit.owner) {
+            BattleUnit.Owner.PLAYER  -> "Ally"
+            BattleUnit.Owner.ENEMY   -> "Enemy"
+            BattleUnit.Owner.NATURAL -> "Neutral"
+        }
+        tooltipTitle = "${unit.type.displayName}  [$ownerLabel]"
+
+        val lines = mutableListOf<String>()
+
+        val currentHp = if (phase == Phase.BATTLE) (renderHp[unit.id] ?: unit.currentHp) else unit.type.maxHp
+        lines += "HP:     $currentHp / ${unit.type.maxHp}"
+
+        if (unit.type.power > 0)  lines += "Power:  ${unit.type.power}"
+        if (unit.type.speed > 0)  lines += "Speed:  ${unit.type.speed}"
+
+        val rangeMin = unit.type.attackRange.first
+        val rangeMax = unit.type.attackRange.last
+        val rangeLabel = when {
+            rangeMax == 0           -> "Melee only"
+            rangeMin == 0           -> "Range: 0–$rangeMax tiles"
+            rangeMin == rangeMax    -> "Range: $rangeMin tiles"
+            else                    -> "Range: $rangeMin–$rangeMax tiles"
+        }
+        lines += rangeLabel
+
+        if (unit.type.cooldown > 0) lines += "Cooldown: ${unit.type.cooldown} turns"
+        if (unit.type.canFly)       lines += "Flying — ignores terrain"
+
+        if (unit.type.tier != UnitTier.BRONZE) lines += "Tier: ${unit.type.tier.label}"
+
+        if (unit.type is SpecialUnitType) {
+            val abilityDesc = when (val ab = unit.type.ability) {
+                is SpecialAbility.PlantFarm  -> "Ability: Plant Farm"
+                is SpecialAbility.YieldGold  -> "Ability: Yields ${ab.goldPerRound}g/round"
+                is SpecialAbility.Fireball   -> "Ability: Fireball (dmg ${ab.power}, r${ab.radius})"
+                is SpecialAbility.Flying     -> "Ability: Flying"
+            }
+            lines += abilityDesc
+        }
+        if (unit.type is StructureUnitType) {
+            val abilityDesc = when (val ab = unit.type.ability) {
+                is SpecialAbility.YieldGold  -> "Yields ${ab.goldPerRound}g/round"
+                else -> ""
+            }
+            if (abilityDesc.isNotEmpty()) lines += abilityDesc
+        }
+        if (unit.type is MonsterUnitType) {
+            lines += "Class: ${unit.type.monsterClass.name.lowercase().replace('_', ' ')}"
+        }
+
+        tooltipLines = lines
+        tooltipAnchorX = anchorX
+        tooltipAnchorY = anchorY
+        tooltipVisible = true
+    }
+
+    private fun dismissTooltip() {
+        tooltipVisible = false
+    }
+
     /**
      * Syncs the CommanderPanel gold display to the current in-battle gold value.
      * Called whenever gold changes: unit bought, unit refunded, or farm gold earned.
@@ -906,6 +1051,31 @@ class BattleScreen(
 
         override fun touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
             val worldY = Gdx.graphics.height - screenY.toFloat()
+
+            // ── Right-click: show tooltip for unit or tile ────────────────────
+            if (button == Input.Buttons.RIGHT) {
+                val gridX = ((screenX - gridOffsetX) / cellSize).toInt()
+                val gridY = ((worldY - gridOffsetY) / cellSize).toInt()
+                if (gridX in 0 until grid.width && gridY in 0 until grid.height) {
+                    val anchorX = gridOffsetX + (gridX + 1) * cellSize
+                    val anchorY = gridOffsetY + gridY * cellSize
+                    // Prefer unit over tile if one is present
+                    val unit = allUnitsById.values.firstOrNull { u ->
+                        u.id !in deadUnits && u.occupies(Position(gridX, gridY))
+                    }
+                    if (unit != null) {
+                        showUnitTooltip(unit, anchorX, anchorY)
+                    } else {
+                        showTileTooltip(grid.getTile(gridX, gridY), anchorX, anchorY)
+                    }
+                } else {
+                    dismissTooltip()
+                }
+                return true
+            }
+
+            // ── Left-click: dismiss tooltip, then process normal input ────────
+            dismissTooltip()
 
             if (phase == Phase.SETUP) {
                 // Check scroll arrows first

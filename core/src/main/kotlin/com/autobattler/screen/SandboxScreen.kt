@@ -6,6 +6,7 @@ import com.autobattler.model.*
 import com.autobattler.render.Fonts
 import com.autobattler.render.SpriteGenerator
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.Input
 import com.badlogic.gdx.InputAdapter
 import com.badlogic.gdx.InputMultiplexer
 import com.badlogic.gdx.ScreenAdapter
@@ -90,6 +91,13 @@ class SandboxScreen(private val game: AutobattlerGame) : ScreenAdapter() {
     // ─── All placed units (for rendering and scenario extraction) ────────────
     private val allUnitsById = mutableMapOf<Int, BattleUnit>()
 
+    // ─── Tooltip state ───────────────────────────────────────────────────────
+    private var tooltipVisible = false
+    private var tooltipTitle = ""
+    private var tooltipLines = listOf<String>()
+    private var tooltipAnchorX = 0f
+    private var tooltipAnchorY = 0f
+
     // ─── Lifecycle ───────────────────────────────────────────────────────────
 
     override fun show() {
@@ -109,6 +117,8 @@ class SandboxScreen(private val game: AutobattlerGame) : ScreenAdapter() {
         drawUnits()
         if (isDragging) drawDragGhost()
         drawLeftPanel()
+
+        if (tooltipVisible) drawTooltip()
 
         stage.act(delta)
         stage.draw()
@@ -582,12 +592,143 @@ class SandboxScreen(private val game: AutobattlerGame) : ScreenAdapter() {
         return screenH - 50f - factionBlockH  // same as unitSlotY start — buttons drawn below list
     }
 
+    // ─── Tooltip drawing ─────────────────────────────────────────────────────
+
+    private fun drawTooltip() {
+        val padding = 10f
+        val lineHeight = 17f
+        val titleHeight = 22f
+        val boxW = 200f
+        val boxH = padding * 2 + titleHeight + (if (tooltipLines.isNotEmpty()) 4f + tooltipLines.size * lineHeight else 0f)
+
+        var bx = tooltipAnchorX + 6f
+        var by = tooltipAnchorY + 6f
+        val screenW = Gdx.graphics.width.toFloat()
+        val screenH = Gdx.graphics.height.toFloat()
+        if (bx + boxW > screenW - 4f) bx = tooltipAnchorX - boxW - 6f
+        if (by + boxH > screenH - 4f) by = tooltipAnchorY - boxH - 6f
+        if (bx < 4f) bx = 4f
+        if (by < 4f) by = 4f
+
+        Gdx.gl.glEnable(GL20.GL_BLEND)
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA)
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
+        shapeRenderer.color = Color(0.04f, 0.06f, 0.08f, 0.93f)
+        shapeRenderer.rect(bx, by, boxW, boxH)
+        shapeRenderer.end()
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line)
+        shapeRenderer.color = Color(0.55f, 0.65f, 0.75f, 0.9f)
+        shapeRenderer.rect(bx, by, boxW, boxH)
+        shapeRenderer.end()
+        Gdx.gl.glDisable(GL20.GL_BLEND)
+
+        batch.begin()
+        font.color = Color(0.9f, 0.85f, 0.5f, 1f)
+        font.draw(batch, tooltipTitle, bx + padding, by + boxH - padding)
+        var lineY = by + boxH - padding - titleHeight - 4f
+        for (line in tooltipLines) {
+            font.color = Color(0.82f, 0.82f, 0.88f, 1f)
+            font.draw(batch, line, bx + padding, lineY)
+            lineY -= lineHeight
+        }
+        batch.end()
+    }
+
+    private fun showTileTooltip(tile: TileType, anchorX: Float, anchorY: Float) {
+        tooltipTitle = tile.displayName
+        val lines = mutableListOf<String>()
+        if (!tile.passable) {
+            lines += "Impassable — blocks movement"
+        } else {
+            when (tile.moveCost) {
+                1    -> lines += "Normal movement"
+                2    -> lines += "Slow (×2 move cost)"
+                3    -> lines += "Very slow (×3 move cost)"
+                else -> lines += "Move cost: ${tile.moveCost}"
+            }
+        }
+        if (!tile.projectilePassable) lines += "Blocks projectiles (cover)"
+        if (!tile.placeable && tile.passable) lines += "Cannot place units here"
+        tooltipLines = lines
+        tooltipAnchorX = anchorX
+        tooltipAnchorY = anchorY
+        tooltipVisible = true
+    }
+
+    private fun showUnitTooltip(unit: BattleUnit, anchorX: Float, anchorY: Float) {
+        val ownerLabel = when (unit.owner) {
+            BattleUnit.Owner.PLAYER  -> "Player"
+            BattleUnit.Owner.ENEMY   -> "Enemy"
+            BattleUnit.Owner.NATURAL -> "Natural"
+        }
+        tooltipTitle = "${unit.type.displayName}  [$ownerLabel]"
+        val lines = mutableListOf<String>()
+        lines += "HP:     ${unit.type.maxHp}"
+        if (unit.type.power > 0)  lines += "Power:  ${unit.type.power}"
+        if (unit.type.speed > 0)  lines += "Speed:  ${unit.type.speed}"
+        val rangeMin = unit.type.attackRange.first
+        val rangeMax = unit.type.attackRange.last
+        lines += when {
+            rangeMax == 0        -> "Melee only"
+            rangeMin == 0        -> "Range: 0–$rangeMax tiles"
+            rangeMin == rangeMax -> "Range: $rangeMin tiles"
+            else                 -> "Range: $rangeMin–$rangeMax tiles"
+        }
+        if (unit.type.cooldown > 0) lines += "Cooldown: ${unit.type.cooldown} turns"
+        if (unit.type.canFly)       lines += "Flying — ignores terrain"
+        if (unit.type.tier != UnitTier.BRONZE) lines += "Tier: ${unit.type.tier.label}"
+        if (unit.type is SpecialUnitType) {
+            lines += when (val ab = unit.type.ability) {
+                is SpecialAbility.PlantFarm -> "Ability: Plant Farm"
+                is SpecialAbility.YieldGold -> "Ability: Yields ${ab.goldPerRound}g/round"
+                is SpecialAbility.Fireball  -> "Ability: Fireball (dmg ${ab.power}, r${ab.radius})"
+                is SpecialAbility.Flying    -> "Ability: Flying"
+            }
+        }
+        if (unit.type is StructureUnitType) {
+            val desc = when (val ab = unit.type.ability) {
+                is SpecialAbility.YieldGold -> "Yields ${ab.goldPerRound}g/round"
+                else -> ""
+            }
+            if (desc.isNotEmpty()) lines += desc
+        }
+        if (unit.type is MonsterUnitType) lines += "Class: ${unit.type.monsterClass.name.lowercase().replace('_', ' ')}"
+        tooltipLines = lines
+        tooltipAnchorX = anchorX
+        tooltipAnchorY = anchorY
+        tooltipVisible = true
+    }
+
+    private fun dismissTooltip() { tooltipVisible = false }
+
     // ─── Input ───────────────────────────────────────────────────────────────
 
     private fun createInputProcessor() = object : InputAdapter() {
 
         override fun touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
             val worldY = Gdx.graphics.height - screenY.toFloat()
+
+            // ── Right-click: tooltip for unit or tile ─────────────────────────
+            if (button == Input.Buttons.RIGHT) {
+                val gridX = ((screenX - gridOffsetX) / cellSize).toInt()
+                val gridY = ((worldY - gridOffsetY) / cellSize).toInt()
+                if (gridX in 0 until grid.width && gridY in 0 until grid.height) {
+                    val anchorX = gridOffsetX + (gridX + 1) * cellSize
+                    val anchorY = gridOffsetY + gridY * cellSize
+                    val unit = allUnitsById.values.firstOrNull { it.occupies(Position(gridX, gridY)) }
+                    if (unit != null) {
+                        showUnitTooltip(unit, anchorX, anchorY)
+                    } else {
+                        showTileTooltip(grid.getTile(gridX, gridY), anchorX, anchorY)
+                    }
+                } else {
+                    dismissTooltip()
+                }
+                return true
+            }
+
+            // ── Left-click: dismiss tooltip, then normal handling ─────────────
+            dismissTooltip()
 
             when (phase) {
                 SandboxPhase.TERRITORY_EDITOR -> {
