@@ -1,0 +1,149 @@
+WORLD 1 CAMPAIGN BALANCE REPORT — 2026-07-27_22-55-51
+======================================================================
+
+══════════════════════════════════════════════════════════════════════
+  EXPECTED GOLD / LEVEL PROGRESSION (1 labor day between each battle)
+  Assumptions: spends minimum viable army, 1 labor day between battles,
+  80% of labor gold collected (20% bandit chance = gold at risk).
+══════════════════════════════════════════════════════════════════════
+
+  Battle     Level    XP       Gold In    Notes                       
+  ------------------------------------------------------------------
+  1-1        1        0        300        Level 1, unlocked: Warrior, Farmer
+                                          Labor day +80g (level 1, 80pct expected)
+  1-2        1        60       400        Level 1, no Archer yet
+                                          Labor day +160g (level 2, 80pct expected)
+  1-3        2        40       550        Level 2, Archer available (500g unlock)
+                                          Labor day +160g (level 2, 80pct expected)
+  1-4        2        140      650        Level 2, unlocked: Warrior, Farmer, [Archer avail.]
+                                          Labor day +240g (level 3, 80pct expected)
+  1-5        3        60       740        Level 3, unlocked: Warrior, Farmer, [Archer avail.], [Cleric avail.]
+
+  After 1-5: Level 3, XP 260, Gold ~470g
+
+
+
+══════════════════════════════════════════════════════════════════════
+  LEVEL 1-1: THE RIVER CROSSING — enemy: 2× Warrior
+══════════════════════════════════════════════════════════════════════
+  Player gold: 300g starting | Unlocked: Warrior(50g) Farmer(100g) | No Archer yet
+Farmer plants a Farm → +20g/round passive (doesn't affect win condition, but earns gold for next level)
+
+  Enemy army total cost equivalent: 100g
+  Army Composition                         Cost   Win%   AvgTrn  Verdict  
+  --------------------------------------------------------------------------------
+  2× Warrior                               100g   100%      9.0  ✓ GOOD      
+  3× Warrior                               150g   100%      5.0  ✓ GOOD      
+  4× Warrior                               200g   100%      4.0  ✓ GOOD      
+  6× Warrior (all-in)                      300g   100%      3.0  ✓ GOOD      
+  2× Warrior + 1× Farmer                   200g   100%      9.0  ✓ GOOD      
+  3× Warrior + 1× Farmer                   250g   100%      5.0  ✓ GOOD      
+
+  Best affordable army: 2× Warrior (100% win rate)
+  Unit performance (best army, 200 runs):
+    Warrior                 dmg/battle=  24.0  kills/battle= 2.0  survival= 50%
+
+
+
+══════════════════════════════════════════════════════════════════════
+  LEVEL 1-2: RIVER AMBUSH — enemy: 3× Warrior + 1× Archer
+══════════════════════════════════════════════════════════════════════
+  Player gold: ~320-420g (after 1-1 + 1 labor day) | Still only Warrior + Farmer
+After this victory: reach Level 2 → Archer becomes purchasable for 500g
+
+  Enemy army total cost equivalent: 250g
+  Army Composition                         Cost   Win%   AvgTrn  Verdict  
+  --------------------------------------------------------------------------------
+  3× Warrior                               150g     0%      5.0  ✗✗ TOO HARD 
+  4× Warrior                               200g     0%      7.0  ✗✗ TOO HARD 
+  5× Warrior                               250g   100%      7.0  ✓ GOOD      
+  6× Warrior                               300g   100%      6.0  ✓ GOOD      
+  7× Warrior                               350g   100%      5.0  ✓ GOOD      
+  4× Warrior + 1× Farmer                   300g     0%     10.0  ✗✗ TOO HARD 
+  5× Warrior + 1× Farmer                   350g   100%      7.0  ✓ GOOD      
+
+  Best affordable army: 5× Warrior (100% win rate)
+  Unit performance (best army, 200 runs):
+    Warrior                 dmg/battle=  42.0  kills/battle= 4.0  survival= 60%
+
+
+
+══════════════════════════════════════════════════════════════════════
+  LEVEL 1-3: HIGH FOREST — enemy: 3× Warrior + 1× Archer
+══════════════════════════════════════════════════════════════════════
+  Player gold: ~400-600g | Level 2 | Archer available if 500g unlock was purchased
+⚠ TERRAIN NOTE: Real map has dense forest (blocks move+arrows). Flat grid sim = EASIER than real.
+Win rate here should be high (60%+) to account for terrain disadvantage in real play.
+
+  Enemy army total cost equivalent: 250g
+  Army Composition                         Cost   Win%   AvgTrn  Verdict  
+  --------------------------------------------------------------------------------
+  5× Warrior                               250g   100%      7.0  ✓ GOOD      
+  6× Warrior                               300g   100%      6.0  ✓ GOOD      
+  4× Warrior + 1× Farmer                   300g     0%     10.0  ✗✗ TOO HARD 
+  2× Warrior + 2× Archer                   300g     0%      7.0  ✗✗ TOO HARD 
+  3× Warrior + 1× Archer                   250g   100%     10.0  ✓ GOOD      
+  4× Warrior + 1× Archer                   300g   100%      7.0  ✓ GOOD      
+  2× Warrior + 3× Archer                   400g   100%      4.0  ✓ GOOD      
+  3× Warrior + 1× Archer + 1× Farmer       350g   100%     10.0  ✓ GOOD      
+
+  Best affordable army: 5× Warrior (100% win rate)
+  Unit performance (best army, 200 runs):
+    Warrior                 dmg/battle=  42.0  kills/battle= 4.0  survival= 60%
+
+
+
+══════════════════════════════════════════════════════════════════════
+  LEVEL 1-4: FOREST SIEGE — enemy: 2× Warrior + 2× Archer + 1× Cleric
+══════════════════════════════════════════════════════════════════════
+  Player gold: ~500-700g | Level 2 | Enemy has a Cleric (healer) — must kill it fast
+After this victory: reach Level 3 → Cleric/Knight become purchasable
+⚠ TERRAIN NOTE: Forest map, flat grid sim is more favorable to player
+
+  Enemy army total cost equivalent: 500g
+  Army Composition                         Cost   Win%   AvgTrn  Verdict  
+  --------------------------------------------------------------------------------
+  5× Warrior                               250g   100%     11.0  ✓ GOOD      
+  6× Warrior                               300g   100%      7.0  ✓ GOOD      
+  4× Warrior + 2× Archer                   400g   100%      7.0  ✓ GOOD      
+  5× Warrior + 1× Archer                   350g   100%      9.0  ✓ GOOD      
+  3× Warrior + 3× Archer                   450g   100%      5.0  ✓ GOOD      
+  4× Warrior + 1× Archer + 1× Farmer       400g   100%     17.0  ✓ GOOD      
+  4× Warrior + 2× Archer + 1× Farmer       500g   100%      7.0  ✓ GOOD      
+  2× Warrior + 3× Archer + 1× Farmer       500g   100%      7.0  ✓ GOOD      
+
+  Best affordable army: 5× Warrior (100% win rate)
+  Unit performance (best army, 200 runs):
+    Warrior                 dmg/battle=  51.0  kills/battle= 5.0  survival= 40%
+
+
+
+══════════════════════════════════════════════════════════════════════
+  LEVEL 1-5: THE SLEEPING BEAR ★ BOSS — enemy: 1× Bear + 2× Warrior
+══════════════════════════════════════════════════════════════════════
+  Player gold: ~600-900g | Level 3 | Cleric available (if 1000g unlock saved up)
+Bear: HP=40, power=9, size=2×2 — heavy hitter. Guard Warriors will die fast.
+⚠ TERRAIN NOTE: Bear map has tree corridors — real Bear can be kited. Flat grid = harder for player.
+Win rate target: 40-60% on flat grid (real map should be easier due to kiting).
+
+  Enemy army total cost equivalent: 100g
+  Army Composition                         Cost   Win%   AvgTrn  Verdict  
+  --------------------------------------------------------------------------------
+  6× Warrior                               300g     0%     11.0  ✗✗ TOO HARD 
+  8× Warrior                               400g   100%      8.0  ✓ GOOD      
+  4× Warrior + 2× Archer                   400g   100%      7.0  ✓ GOOD      
+  5× Warrior + 2× Archer                   450g   100%      7.0  ✓ GOOD      
+  4× Warrior + 3× Archer                   500g   100%      7.0  ✓ GOOD      
+  6× Warrior + 1× Archer                   400g   100%      7.0  ✓ GOOD      
+  4× Warrior + 2× Archer + 1× Farmer       500g   100%      7.0  ✓ GOOD      
+  5× Warrior + 2× Archer + 1× Farmer       550g   100%      7.0  ✓ GOOD      
+  3× Warrior + 1× Archer + 1× Cleric       450g     0%      9.0  ✗✗ TOO HARD 
+  4× Warrior + 1× Archer + 1× Cleric       500g     0%     11.0  ✗✗ TOO HARD 
+  5× Warrior + 1× Cleric                   450g     0%     11.0  ✗✗ TOO HARD 
+  6× Warrior + 1× Cleric                   500g   100%     10.0  ✓ GOOD      
+
+  Best affordable army: 8× Warrior (100% win rate)
+  Unit performance (best army, 200 runs):
+    Warrior                 dmg/battle=  66.0  kills/battle= 3.0  survival= 63%
+
+

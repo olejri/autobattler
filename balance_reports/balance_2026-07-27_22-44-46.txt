@@ -1,0 +1,20 @@
+AUTOBATTLER BALANCE REPORT — Generated 2026-07-27_22-44-46
+======================================================================
+
+╔══════════════════════════════════════════════════════════════════╗
+║  MATCHUP: 2× Warrior + Archer  vs  3× Skeleton
+║  Simulations: 50
+╠══════════════════════════════════════════════════════════════════╣
+║  2× Warrior + Archer wins : 0 (0.0%)
+║  3× Skeleton wins : 50 (100.0%)
+║  Draws              : 0 (0.0%)
+║  Turns              : avg=9.0  min=9  max=9
+╠══════════════════════════════════════════════════════════════════╣
+║  [2× Warrior + Archer] unit performance:
+║    Warrior                 dmg/battle=   15.0  kills/battle= 0.00  survival=  0%
+║    Archer                  dmg/battle=   10.0  kills/battle= 2.00  survival=  0%
+╠══════════════════════════════════════════════════════════════════╣
+║  [3× Skeleton] unit performance:
+║    Skeleton                dmg/battle=   32.0  kills/battle= 3.00  survival= 33%
+╚══════════════════════════════════════════════════════════════════╝
+

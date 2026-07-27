@@ -118,8 +118,8 @@ sealed class NormalUnitType(
 ) : UnitType(id, displayName, maxHp, power, speed, cooldown, attackRange, size, cost, unlockLevel) {
 
     data object Melee : NormalUnitType(
-        "melee", "Warrior", maxHp = 10, power = 3, speed = 3, cooldown = 2,
-        attackRange = 0..1, cost = 50
+        "melee", "Warrior", maxHp = 9, power = 3, speed = 2, cooldown = 2,
+        attackRange = 0..1, cost = 60
     )
 
     data object MeleeSilver : NormalUnitType(
@@ -139,7 +139,7 @@ sealed class NormalUnitType(
     }
 
     data object Ranged : NormalUnitType(
-        "ranged", "Archer", maxHp = 5, power = 5, speed = 1, cooldown = 3,
+        "ranged", "Archer", maxHp = 6, power = 5, speed = 2, cooldown = 2,
         attackRange = 3..6, cost = 100, unlockLevel = 2
     )
 
@@ -341,7 +341,7 @@ sealed class MonsterUnitType(
 ) : UnitType(id, displayName, maxHp, power, speed, cooldown, attackRange, size = size) {
 
     data object Bear : MonsterUnitType(
-        "bear", "Bear", maxHp = 40, power = 9, speed = 2, cooldown = 2,
+        "bear", "Bear", maxHp = 40, power = 8, speed = 2, cooldown = 2,
         attackRange = 0..1, size = 2, monsterClass = MonsterClass.BEAST
     )
 
