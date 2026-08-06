@@ -1,6 +1,7 @@
 package com.autobattler.engine
 
 import com.autobattler.model.*
+import kotlin.random.Random
 
 /**
  * Headless batch-simulation tool for game balance analysis.
@@ -37,6 +38,17 @@ object BalancingSimulator {
         }
         val resolvedLabel: String get() = label.ifBlank { description }
     }
+
+    enum class PlacementMode {
+        PACKED,
+        RANDOM
+    }
+
+    data class PlacementConfig(
+        val playerMode: PlacementMode = PlacementMode.PACKED,
+        val enemyMode: PlacementMode = PlacementMode.PACKED,
+        val seed: Long = 42L
+    )
 
     // ─── Per-unit-type stats ─────────────────────────────────────────────────
 
@@ -116,6 +128,28 @@ object BalancingSimulator {
                 appendLine("║    $name  dmg/battle=$dmg  kills/battle=$kills  survival=$surv%")
             }
         }
+
+    }
+
+    data class PlacementSensitivityResult(
+        val armyALabel: String,
+        val armyBLabel: String,
+        val samples: Int,
+        val playerMode: PlacementMode,
+        val enemyMode: PlacementMode,
+        val averageScore: Double,
+        val minScore: Double,
+        val maxScore: Double
+    ) {
+        /** Average score as percentage where win=100, draw=50, loss=0. */
+        val averageScorePct: Double get() = averageScore * 100.0
+
+        fun summary(): String = buildString {
+            appendLine("Placement sensitivity: $armyALabel vs $armyBLabel")
+            appendLine("  Samples: $samples (player=$playerMode, enemy=$enemyMode)")
+            appendLine("  Avg score: ${String.format("%.1f", averageScorePct)}%")
+            appendLine("  Range   : ${String.format("%.1f", minScore * 100.0)}% .. ${String.format("%.1f", maxScore * 100.0)}%")
+        }
     }
 
     // ─── Public API ─────────────────────────────────────────────────────────
@@ -131,11 +165,13 @@ object BalancingSimulator {
     fun runMatchup(
         armyA: ArmySpec,
         armyB: ArmySpec,
-        runs: Int = 100
+        runs: Int = 100,
+        placement: PlacementConfig = PlacementConfig()
     ): MatchupResult {
         require(runs > 0) { "runs must be > 0" }
 
         val engine = GridBattleEngine()
+        val random = Random(placement.seed)
 
         var aWins = 0; var bWins = 0; var draws = 0
         var totalTurns = 0; var minTurns = Int.MAX_VALUE; var maxTurns = 0
@@ -149,7 +185,7 @@ object BalancingSimulator {
         }
 
         repeat(runs) {
-            val grid = buildFlatGrid(armyA, armyB)
+            val grid = buildFlatGrid(armyA, armyB, placement, random)
             val initialUnits = grid.allUnits.toList()
 
             val outcome = engine.simulate(grid)
@@ -207,6 +243,49 @@ object BalancingSimulator {
     }
 
     /**
+     * Evaluate how sensitive a matchup is to placement.
+     *
+     * Each sample runs one battle with the requested placement modes.
+     * Score per battle: win=1, draw=0.5, loss=0.
+     */
+    fun runPlacementSensitivity(
+        armyA: ArmySpec,
+        armyB: ArmySpec,
+        samples: Int = 100,
+        playerMode: PlacementMode = PlacementMode.RANDOM,
+        enemyMode: PlacementMode = PlacementMode.PACKED,
+        seed: Long = 1337L
+    ): PlacementSensitivityResult {
+        require(samples > 0) { "samples must be > 0" }
+        val engine = GridBattleEngine()
+        val random = Random(seed)
+        val scores = mutableListOf<Double>()
+
+        repeat(samples) {
+            val placement = PlacementConfig(playerMode = playerMode, enemyMode = enemyMode, seed = random.nextLong())
+            val grid = buildFlatGrid(armyA, armyB, placement, random)
+            val outcome = engine.simulate(grid)
+            val score = when (outcome.winner) {
+                BattleOutcome.Winner.PLAYER -> 1.0
+                BattleOutcome.Winner.DRAW -> 0.5
+                BattleOutcome.Winner.ENEMY -> 0.0
+            }
+            scores += score
+        }
+
+        return PlacementSensitivityResult(
+            armyALabel = armyA.resolvedLabel,
+            armyBLabel = armyB.resolvedLabel,
+            samples = samples,
+            playerMode = playerMode,
+            enemyMode = enemyMode,
+            averageScore = scores.average(),
+            minScore = scores.minOrNull() ?: 0.0,
+            maxScore = scores.maxOrNull() ?: 0.0
+        )
+    }
+
+    /**
      * All non-structure combat unit types (player + monsters), sorted by cost then name.
      * Useful as a default set for matrix runs.
      */
@@ -216,16 +295,27 @@ object BalancingSimulator {
 
     // ─── Grid builder ────────────────────────────────────────────────────────
 
-    /** Build a fresh flat all-grass 16×16 grid and auto-place both armies. */
-    private fun buildFlatGrid(armyA: ArmySpec, armyB: ArmySpec): BattleGrid {
+    /** Build a fresh flat all-grass 16×16 grid and place both armies. */
+    private fun buildFlatGrid(
+        armyA: ArmySpec,
+        armyB: ArmySpec,
+        placement: PlacementConfig,
+        random: Random
+    ): BattleGrid {
         val grid = BattleGrid()
         var nextId = 0
 
         val playerTypes = armyA.units.flatMap { (type, count) -> List(count) { type } }
         val enemyTypes  = armyB.units.flatMap { (type, count) -> List(count) { type } }
 
-        nextId = placeArmy(grid, playerTypes, BattleUnit.Owner.PLAYER, startId = nextId)
-        placeArmy(grid, enemyTypes, BattleUnit.Owner.ENEMY, startId = nextId)
+        nextId = when (placement.playerMode) {
+            PlacementMode.PACKED -> placeArmyPacked(grid, playerTypes, BattleUnit.Owner.PLAYER, startId = nextId)
+            PlacementMode.RANDOM -> placeArmyRandom(grid, playerTypes, BattleUnit.Owner.PLAYER, startId = nextId, random = random)
+        }
+        when (placement.enemyMode) {
+            PlacementMode.PACKED -> placeArmyPacked(grid, enemyTypes, BattleUnit.Owner.ENEMY, startId = nextId)
+            PlacementMode.RANDOM -> placeArmyRandom(grid, enemyTypes, BattleUnit.Owner.ENEMY, startId = nextId, random = random)
+        }
 
         return grid
     }
@@ -239,7 +329,7 @@ object BalancingSimulator {
      *
      * Returns the next free unit ID.
      */
-    private fun placeArmy(
+    private fun placeArmyPacked(
         grid: BattleGrid,
         types: List<UnitType>,
         owner: BattleUnit.Owner,
@@ -281,6 +371,57 @@ object BalancingSimulator {
 
             if (!placed) {
                 System.err.println("[BalancingSimulator] WARNING: Could not place ${type.displayName} for $owner")
+            }
+        }
+        return id
+    }
+
+    /**
+     * Random placement inside owner's valid zone.
+     * Useful for measuring how much a composition depends on formation quality.
+     */
+    private fun placeArmyRandom(
+        grid: BattleGrid,
+        types: List<UnitType>,
+        owner: BattleUnit.Owner,
+        startId: Int,
+        random: Random
+    ): Int {
+        var id = startId
+
+        // Place larger units first to reduce fit failures.
+        val sortedTypes = types.sortedByDescending { it.size }
+
+        for (type in sortedTypes) {
+            val candidates = mutableListOf<Position>()
+            val size = type.size
+            for (x in 0..BattleGrid.GRID_SIZE - size) {
+                val xMax = x + size - 1
+                val inZone = when (owner) {
+                    BattleUnit.Owner.PLAYER  -> x >= 0 && xMax <= BattleGrid.PLAYER_ZONE_END
+                    BattleUnit.Owner.ENEMY   -> x >= BattleGrid.ENEMY_ZONE_START && xMax < BattleGrid.GRID_SIZE
+                    BattleUnit.Owner.NATURAL -> x >= 0 && xMax < BattleGrid.GRID_SIZE
+                }
+                if (!inZone) continue
+                for (y in 0..BattleGrid.GRID_SIZE - size) {
+                    candidates += Position(x, y)
+                }
+            }
+            candidates.shuffle(random)
+
+            var placed = false
+            for (pos in candidates) {
+                val unit = BattleUnit(id, type, owner, pos)
+                if (grid.isValidPlacementForUnit(unit)) {
+                    grid.placeUnit(unit)
+                    id++
+                    placed = true
+                    break
+                }
+            }
+            if (!placed) {
+                // Fall back to packed if random couldn't fit this unit.
+                id = placeArmyPacked(grid, listOf(type), owner, id)
             }
         }
         return id

@@ -317,6 +317,21 @@ private fun runLevelSection(
         "(${String.format("%.0f", best?.second?.armyAWinRate ?: 0.0)}% win rate)"
     println(bestLine); report.appendLine(bestLine)
 
+    if (best != null) {
+        val placement = BalancingSimulator.runPlacementSensitivity(
+            armyA = best.first,
+            armyB = enemy,
+            samples = 120,
+            playerMode = BalancingSimulator.PlacementMode.RANDOM,
+            enemyMode = BalancingSimulator.PlacementMode.PACKED,
+            seed = 2026L
+        )
+        val placementLine = "  Placement sensitivity (best army, random player placement): " +
+            "avg=${String.format("%.1f", placement.averageScorePct)}% " +
+            "range=${String.format("%.1f", placement.minScore * 100.0)}..${String.format("%.1f", placement.maxScore * 100.0)}%"
+        println(placementLine); report.appendLine(placementLine)
+    }
+
     // Per-unit kill breakdown for best army
     if (best != null) {
         val details = buildString {

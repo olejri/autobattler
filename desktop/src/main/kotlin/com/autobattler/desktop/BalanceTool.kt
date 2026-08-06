@@ -161,6 +161,18 @@ private fun runFullSuite(report: StringBuilder) {
     val matrixText = formatMatrix(matrix, matrixTypes)
     println(matrixText)
     report.appendLine(matrixText)
+
+    // ── Section 7: Placement sensitivity ─────────────────────────────────────
+    section("SECTION 7 — PLACEMENT SENSITIVITY (formation matters)", report)
+    val placementPairs = listOf(
+        ArmySpec(listOf(NormalUnitType.Melee to 5), "5× Warrior")
+            to ArmySpec(listOf(NormalUnitType.Melee to 3, NormalUnitType.Ranged to 1), "3× Warrior + 1× Archer"),
+        ArmySpec(listOf(NormalUnitType.Melee to 3, NormalUnitType.Ranged to 2), "3× Warrior + 2× Archer")
+            to ArmySpec(listOf(NormalUnitType.Melee to 2, NormalUnitType.Ranged to 2, NormalUnitType.Healer to 1), "2× Warrior + 2× Archer + 1× Cleric"),
+        ArmySpec(listOf(NormalUnitType.Melee to 4, SpecialUnitType.Farmer to 1), "4× Warrior + 1× Farmer")
+            to ArmySpec(listOf(MonsterUnitType.Bear to 1, NormalUnitType.Melee to 2), "Bear + 2× Warrior")
+    )
+    runPlacementSensitivitySection(placementPairs, report)
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -184,6 +196,49 @@ private fun runMatchups(
         println("  → ${String.format("%.0f", result.armyAWinRate)}% / ${String.format("%.0f", result.armyBWinRate)}%")
         report.appendLine(result.summary())
         report.appendLine()
+    }
+}
+
+private fun runPlacementSensitivitySection(
+    pairs: List<Pair<ArmySpec, ArmySpec>>,
+    report: StringBuilder
+) {
+    for ((a, b) in pairs) {
+        val packed = BalancingSimulator.runMatchup(
+            a, b, runs = 100,
+            placement = BalancingSimulator.PlacementConfig(
+                playerMode = BalancingSimulator.PlacementMode.PACKED,
+                enemyMode = BalancingSimulator.PlacementMode.PACKED,
+                seed = 2026L
+            )
+        )
+        val randomPlayer = BalancingSimulator.runPlacementSensitivity(
+            armyA = a,
+            armyB = b,
+            samples = 150,
+            playerMode = BalancingSimulator.PlacementMode.RANDOM,
+            enemyMode = BalancingSimulator.PlacementMode.PACKED,
+            seed = 2026L
+        )
+        val randomBoth = BalancingSimulator.runPlacementSensitivity(
+            armyA = a,
+            armyB = b,
+            samples = 150,
+            playerMode = BalancingSimulator.PlacementMode.RANDOM,
+            enemyMode = BalancingSimulator.PlacementMode.RANDOM,
+            seed = 2027L
+        )
+
+        val block = buildString {
+            appendLine("  ${a.resolvedLabel}  vs  ${b.resolvedLabel}")
+            appendLine("    Packed baseline: ${String.format("%.1f", packed.armyAWinRate)}% A win rate")
+            appendLine("    Random player : avg=${String.format("%.1f", randomPlayer.averageScorePct)}% " +
+                "range=${String.format("%.1f", randomPlayer.minScore * 100.0)}..${String.format("%.1f", randomPlayer.maxScore * 100.0)}")
+            appendLine("    Random both   : avg=${String.format("%.1f", randomBoth.averageScorePct)}% " +
+                "range=${String.format("%.1f", randomBoth.minScore * 100.0)}..${String.format("%.1f", randomBoth.maxScore * 100.0)}")
+        }
+        println(block)
+        report.appendLine(block)
     }
 }
 
