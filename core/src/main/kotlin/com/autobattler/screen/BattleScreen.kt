@@ -47,7 +47,16 @@ class BattleScreen(
      * When non-null, this is a camp ambush: the listed units were pre-placed from the camp
      * and the screen must track which survive to update Commander.campUnits afterwards.
      */
-    private val campUnits: List<CampUnit>? = null
+    private val campUnits: List<CampUnit>? = null,
+    /**
+     * Rogue-mode callbacks. When set the screen is in rogue-run context:
+     * - [onRogueNodeWin]  called on PLAYER victory with (goldFromKills, goldFromFarms)
+     * - [onRogueNodeLose] called on ENEMY victory (permadeath — run ends)
+     * - [rogueShopUnitIds] overrides the default shop roster for this battle
+     */
+    private val onRogueNodeWin:  ((goldFromKills: Int, goldFromFarms: Int) -> Unit)? = null,
+    private val onRogueNodeLose: (() -> Unit)? = null,
+    private val rogueShopUnitIds: List<String>? = null
 ) : ScreenAdapter() {
 
     private enum class Phase { SETUP, BATTLE, RESULT }
@@ -76,15 +85,21 @@ class BattleScreen(
     // ─── SETUP state ────────────────────────────────────────────────────────────
     private var phase = Phase.SETUP
 
-    /** Starting gold: commander's persistent pool in campaign mode, scenario budget in tutorial. */
+    /** Starting gold: commander's persistent pool in campaign mode, scenario budget otherwise. */
     private val initialGold = commander?.gold ?: scenario.startingGold
     private var gold = initialGold
 
-    // Units available in the shop — filtered by unlocked types in campaign mode
-    private val shopTypes = if (commander != null)
-        UnitType.purchasable.filter { it.id in commander.unlockedUnitTypeIds }
-    else
-        listOf(NormalUnitType.Melee, NormalUnitType.Ranged, NormalUnitType.Healer)
+    // Units available in the shop — filtered by unlocked types in campaign mode,
+    // or overridden by the rogueShopUnitIds when in rogue mode
+    private val shopTypes = when {
+        rogueShopUnitIds != null ->
+            rogueShopUnitIds.mapNotNull { runCatching { UnitType.fromId(it) }.getOrNull() }
+                .filterIsInstance<UnitType>()
+        commander != null ->
+            UnitType.purchasable.filter { it.id in commander.unlockedUnitTypeIds }
+        else ->
+            listOf(NormalUnitType.Melee, NormalUnitType.Ranged, NormalUnitType.Healer)
+    }
 
     // Campaign result — computed on victory, committed when player clicks Continue
     private var updatedCommander: Commander? = null
@@ -1263,6 +1278,39 @@ class BattleScreen(
                     else                        -> "DRAW"
                 }
                 table.add(TextButton(resultText, skin)).width(200f).height(55f).pad(8f).row()
+
+                // ── Rogue mode ───────────────────────────────────────────────────
+                if (onRogueNodeWin != null) {
+                    if (won) {
+                        val killGold = enemyKillCount * GOLD_PER_KILL
+                        table.add(TextButton(
+                            "${enemyKillCount} kills  +${killGold}g" +
+                            if (farmGoldEarned > 0) "   farms +${farmGoldEarned}g" else "",
+                            skin
+                        )).width(360f).height(36f).pad(4f).row()
+
+                        val continueBtn = TextButton("CONTINUE", skin)
+                        continueBtn.addListener(object : ClickListener() {
+                            override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                                onRogueNodeWin.invoke(killGold, farmGoldEarned)
+                            }
+                        })
+                        table.add(continueBtn).width(200f).height(55f).pad(8f).row()
+                    } else {
+                        table.add(TextButton("Your run is over.", skin))
+                            .width(280f).height(36f).pad(4f).row()
+                        val endBtn = TextButton("END RUN", skin)
+                        endBtn.addListener(object : ClickListener() {
+                            override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                                onRogueNodeLose?.invoke()
+                            }
+                        })
+                        table.add(endBtn).width(200f).height(55f).pad(8f).row()
+                    }
+                    // Rogue mode: no other buttons — return early
+                    stage.addActor(table)
+                    return
+                }
 
                 if (commander != null) {
                     if (campUnits != null) {

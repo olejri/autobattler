@@ -15,6 +15,8 @@ class LocalSaveManager : SaveManager {
 
     private val json = Json { prettyPrint = true; ignoreUnknownKeys = true }
     private val path = "save/commander.json"
+    private val roguePath = "save/rogue_run.json"
+    private val metaPath  = "save/rogue_meta.json"
 
     override fun save(commander: Commander) {
         try {
@@ -46,5 +48,47 @@ class LocalSaveManager : SaveManager {
     override fun deleteSave() {
         Gdx.files.local(path).delete()
     }
+
+    override fun saveRogue(run: RogueRun) {
+        try {
+            Gdx.files.local(roguePath).writeString(json.encodeToString(run), false)
+        } catch (e: Exception) {
+            Gdx.app.error("SaveManager", "Failed to save rogue run: ${e.message}")
+        }
+    }
+
+    override fun loadRogue(): RogueRun? = try {
+        val file = Gdx.files.local(roguePath)
+        if (!file.exists()) null
+        else json.decodeFromString(RogueRun.serializer(), file.readString())
+    } catch (e: Exception) {
+        Gdx.app.error("SaveManager", "Failed to load rogue run: ${e.message}")
+        null
+    }
+
+    override fun hasRogueSave(): Boolean = Gdx.files.local(roguePath).exists()
+
+    override fun deleteRogue() {
+        Gdx.files.local(roguePath).delete()
+    }
+
+    override fun saveMeta(meta: RogueMeta) {
+        try {
+            Gdx.files.local(metaPath).writeString(json.encodeToString(meta), false)
+        } catch (e: Exception) {
+            Gdx.app.error("SaveManager", "Failed to save rogue meta: ${e.message}")
+        }
+    }
+
+    override fun loadMeta(): RogueMeta? = try {
+        val file = Gdx.files.local(metaPath)
+        if (!file.exists()) null
+        else json.decodeFromString(RogueMeta.serializer(), file.readString())
+    } catch (e: Exception) {
+        Gdx.app.error("SaveManager", "Failed to load rogue meta: ${e.message}")
+        null
+    }
+
+    override fun hasMeta(): Boolean = Gdx.files.local(metaPath).exists()
 }
 

@@ -44,6 +44,9 @@ class MainMenuScreen(private val game: AutobattlerGame) : ScreenAdapter() {
                 game.screen = CommanderNameScreen(game)
             }
         }
+        addButton(root, "ROGUE RUN", 240f, 64f) {
+            game.screen = RogueCommanderSelectScreen(game)
+        }
         addButton(root, "TUTORIAL", 240f, 64f) {
             game.screen = BattleScreen(game, Scenarios.tutorialSequence[0])
         }

@@ -9,5 +9,14 @@ interface SaveManager {
     fun load(): Commander?
     fun hasSave(): Boolean
     fun deleteSave()
+
+    fun saveRogue(run: RogueRun)
+    fun loadRogue(): RogueRun?
+    fun hasRogueSave(): Boolean
+    fun deleteRogue()
+
+    fun saveMeta(meta: RogueMeta)
+    fun loadMeta(): RogueMeta?
+    fun hasMeta(): Boolean
 }
 
